@@ -5,4 +5,7 @@ from django.apps import AppConfig
 
 
 class BillsConfig(AppConfig):
-    name = 'bills'
+    name = 'apps.bills'
+
+    def ready(self):
+        import handlers
