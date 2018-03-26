@@ -43,3 +43,12 @@ class BillPythonAPITestCase(TestCase):
         expected_hash = self.calculate_expected_hash()
         self.assertEqual(
             bill.sha256_hash_hex, expected_hash)
+
+    def test_parse_bill__valid_data_returned(self):
+        """
+        We return valid datetime and sepndings when parse bill
+        """
+        bill = Bill.objects.create(
+            image='apps/bills/media/test_check_full.jpg')
+        text = bill.parse_bill()
+        print(text)
