@@ -1,6 +1,7 @@
 """
 Tests for python API of apps.bills.models.Bill model
 """
+from mock import Mock, patch
 from hashlib import sha256
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -11,6 +12,39 @@ from apps.bills.models import Bill
 from .check_image import CHECK_IMAGE as DEFAULT_CHECK_IMAGE
 
 
+TEST_PARSED_TEXT = '''
+EXAMPLE RECEIPT NORMAL DAY
+
+NEW OXFORD STREET STORE TEL: 020 7637 9348
+9876543210
+
+John Doe
+
+New Oxford Street
+
+London
+
+WC1A1HB
+
+Transaction: 982747438928 on 4.07.17 at 13.24
+
+You were served today by Jane S
+
+E
+HAIR DRYER 1 @ 20.00 , 79.99
+123456 VAT @ 20%
+E
+Total Amount Ex. VAT 79.99
+VAT 1600
+Total amount due Inc. VAT 95.99
+
+Cash 95.99
+
+Thank you for shopping with us
+Our full range is available 24/7 at
+salon-services.com
+----------------------------------------------------------------------
+'''
 
 class BillPythonAPITestCase(TestCase):
     """
@@ -23,7 +57,7 @@ class BillPythonAPITestCase(TestCase):
         """
         return Bill.objects.create(
                 image=SimpleUploadedFile(
-                    name='test_bill_image.jpg', 
+                    name='test_check.jpg', 
                     content=DEFAULT_CHECK_IMAGE, 
                     content_type='image/jpeg'))
 
@@ -44,11 +78,33 @@ class BillPythonAPITestCase(TestCase):
         self.assertEqual(
             bill.sha256_hash_hex, expected_hash)
 
-    def test_parse_bill__valid_data_returned(self):
+    @patch(
+        'apps.bills.models.Image.open')
+    @patch(
+        'apps.bills.models.image_to_string')
+    def test_parse_bill__valid_data_returned(
+            self, 
+            image_to_string_mock,
+            open_mock):
         """
         We return valid datetime and sepndings when parse bill
+
+        TODO: test different bill formats and scenarios
         """
-        bill = Bill.objects.create(
-            image='apps/bills/media/test_check_full.jpg')
-        text = bill.parse_bill()
-        print(text)
+        import json
+        image_to_string_mock.return_value = TEST_PARSED_TEXT
+        open_mock.return_value = Mock()
+
+        bill = self.create_bill()
+        bill_text = bill.parse_bill()
+        bill_data = json.loads(bill_text)
+        self.assertEqual(
+            bill_data, {
+                "date": "2017-04-07 00:00:00", 
+                "items": [
+                    {
+                        "item": "HAIR DRYER", 
+                        "amount": 79.99, 
+                        "quantity": 1
+                    }
+                ]})
