@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
 from PIL import Image
 
 from django.db import models
 from pytesseract import image_to_string
 
 
+logger = logging.getLogger(__name__)
 SHA256_LEN_HEX = 64
 
 
@@ -37,6 +39,8 @@ class Bill(models.Model):
         """
         Get text information from bill image and
         extract datet ime of the bill, spendings types and amounts
+
+        Raises ValueError in case bill can not be parsed
         """
         import json
         if not reparse and self.parsed_data:
@@ -60,7 +64,7 @@ class Bill(models.Model):
     def _get_datetime_and_spendings_from_bill(self, bill_text):
         """
         Get datetime when bill was created and information about spendings:
-        type, amount
+        type, amount. Throws ValueError if date or items can not be found
      
         WARNING: parsing implementation is not robust and covers only
         limited amount of bills formats (for MVP)
@@ -85,15 +89,19 @@ class Bill(models.Model):
         MIN_WORD_LENGTH = 6 # 2 - year, 1 - month, 1 - day, 2 - stop symbols
         for word in bill_words:
             if len(word) < MIN_WORD_LENGTH:
+                logger.debug(
+                    'Length of word %s is not enough to be date' % word)
                 continue
             try:
                 date = parser.parse(word)
                 return str(date)
             # not date - ok to skip
-            except ValueError:
-                pass
-            except OverflowError:
-                pass
+            except ValueError as e:
+                logger.debug(
+                    'Word %s is not date: %s' % (word, e))
+            except OverflowError as e:
+                logger.debug(
+                    'Word %s is not date: %s' % (word, e))
         raise ValueError('No date found')
 
     def _find_items(self, bill_lines):
@@ -104,14 +112,18 @@ class Bill(models.Model):
         for line in bill_lines:
             # don't proceed further that total sum line
             if self._is_total_line(line):
+                logger.debug(
+                    'Found total line: "%s"' % line)
                 break
             # try to pass each line
             # like it has bought item
             try:
                 item = self._get_item_from_line(line)
                 items.append(item)
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.debug(
+                    'Line "%s" does not have information about bill items. '
+                    'Original error: %s' % (line, e))
         if not items:
             raise ValueError('No items found')
         return items
@@ -130,7 +142,7 @@ class Bill(models.Model):
         import re
         match = re.search('^([a-zA-Z\s]+)([\d]+)', line)
         if not match:
-            raise ValueError('No item found')
+            raise ValueError('Can not find item name and quantity')
         # Currently only one currency is supported (EUR)
         item = match.group(1).strip()
         quantity = int(match.group(2))
@@ -142,8 +154,10 @@ class Bill(models.Model):
             try:
                 amount = float(word.replace(',', '.'))
                 break
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.debug(
+                    'Word %s does not contain amount. '
+                    'Original error: %s' % (word, e))
         if amount is None:
             raise ValueError('Amount not found for item')
         return {
