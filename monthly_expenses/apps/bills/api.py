@@ -6,6 +6,10 @@ from rest_framework import (
     generics, response)
 
 from .models import Bill
+from .utils import generate_hash_from_image
+
+
+IMAGE_ALREADY_UPLOADED_ERROR = 'This image was already uploaded'
 
 
 class CreateBillSerializer(
@@ -22,7 +26,14 @@ class CreateBillSerializer(
         """
         Validate that the image was not uploaded yet
         """
-        print(image)
+        # WARNING: prone to race conditions here
+        sha256_hash_hex = generate_hash_from_image(image)
+        if Bill.objects.\
+                filter(sha256_hash_hex=sha256_hash_hex).\
+                exists():
+            raise serializers.ValidationError(
+                IMAGE_ALREADY_UPLOADED_ERROR)
+        return image
 
 
 class UploadBillAPI(

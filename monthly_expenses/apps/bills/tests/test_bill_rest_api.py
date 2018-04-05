@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from rest_framework import status
 
+from apps.bills.api import IMAGE_ALREADY_UPLOADED_ERROR
 from apps.bills.models import Bill
 from .check_image import CHECK_IMAGE as DEFAULT_CHECK_IMAGE
 from .helpers import TestBillMixin
@@ -87,7 +88,7 @@ class BillRestAPITest(
                 'error': PARSING_ERROR
             })
         self.assertEqual(
-            response.status, status.HTTP_400_BAD_REQUEST)
+            response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_upload_bill_already_exists__error_returned(self):
         """
@@ -95,8 +96,12 @@ class BillRestAPITest(
         """
         self.create_bill()
         response = self.upload_bill()
-        print(response.data)
         self.assertEqual(
-            response.status, 
-            status.HTTP_400_BAD_REQUEST)        
+            response.status_code, 
+            status.HTTP_400_BAD_REQUEST)    
+        self.assertDictEqual(
+            response.data,
+            {
+                'image': [IMAGE_ALREADY_UPLOADED_ERROR]
+            })    
 
