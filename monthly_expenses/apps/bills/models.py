@@ -44,12 +44,13 @@ class Bill(models.Model):
         """
         import json
         if not reparse and self.parsed_data:
-            return self.parcsd_data
+            return json.loads(self.parsed_data)
         bill_text = self._get_text_from_image()
-        self.parsed_data = json.dumps(
-            self._get_datetime_and_spendings_from_bill(bill_text))
+        parsed_data = \
+            self._get_datetime_and_spendings_from_bill(bill_text)
+        self.parsed_data = json.dumps(parsed_data)
         self.save(update_fields=['parsed_data'])
-        return self.parsed_data
+        return parsed_data
 
     def _get_text_from_image(self):
         """

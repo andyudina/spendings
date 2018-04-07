@@ -71,13 +71,11 @@ class BillPythonAPITestCase(
 
         TODO: test different bill formats and scenarios
         """
-        import json
         image_to_string_mock.return_value = TEST_PARSED_TEXT
         open_mock.return_value = Mock()
 
         bill = self.create_bill()
-        bill_text = bill.parse_bill()
-        bill_data = json.loads(bill_text)
+        bill_data = bill.parse_bill()
         self.assertEqual(
             bill_data, {
                 "date": "2017-04-07 00:00:00", 
