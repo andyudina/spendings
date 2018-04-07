@@ -1,6 +1,7 @@
 """
 REST API endpoints to parse and upload bills images
 """
+from django.db import transaction
 from rest_framework import (
     status, serializers, 
     generics, response)
@@ -48,7 +49,8 @@ class UploadBillAPI(
             self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        bill = serializer.save()
+        with transaction.atomic():
+            bill = serializer.save()
         try:
             data = bill.parse_bill()
         except ValueError as e:
