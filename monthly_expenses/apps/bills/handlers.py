@@ -7,6 +7,7 @@ from django.dispatch import receiver
 
 from monthly_expenses.settings import MEDIA_ROOT
 from .models import Bill
+from .signals import bill_was_created
 from .utils import generate_hash_from_image
 
 
@@ -20,6 +21,7 @@ def populate_bill_hash(
     """
     Generate sha256 hash for given image and populate
     hash field of sender instance with it
+    Can rise IntegrityError
     """
 
     if not created:
@@ -31,5 +33,10 @@ def populate_bill_hash(
         sha256_hash = \
             generate_hash_from_image(image_binary_file)
     instance.sha256_hash_hex = sha256_hash
+    # can raise IntegrityError here
     instance.save(update_fields=['sha256_hash_hex'])
-
+    # send custom signal that states that 
+    # new bill was successfully created
+    bill_was_created.send(
+        sender=Bill,
+        bill=instance)
