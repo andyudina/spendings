@@ -3,11 +3,13 @@ Pluggable bills parsers
 """
 import logging
 
+from .fi import FIParser
 from .test import TestParser
 
 
 logger = logging.getLogger(__name__)
 __PARSERS = {
+    'fi_parser': FIParser(),
     'test_parser': TestParser(),
     'default': TestParser()
 }

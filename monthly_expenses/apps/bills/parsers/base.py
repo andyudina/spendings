@@ -95,7 +95,7 @@ class BaseParser(object):
             raise ValueError('No items found')
         return items
 
-    def _process_line(self, line, **kwargs):
+    def _process_line(self, line, *args, **kwargs):
         """
         Process bill line.
         Returns parsed item or None
