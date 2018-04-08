@@ -3,7 +3,7 @@ Tests for python API of apps.bills.models.Bill model
 """
 from mock import Mock, patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from apps.bills.models import Bill
 from .helpers import TestBillMixin
@@ -43,6 +43,7 @@ salon-services.com
 ----------------------------------------------------------------------
 '''
 
+@override_settings(PARSER='test_parser')
 class BillPythonAPITestCase(
         TestBillMixin, TestCase):
     """

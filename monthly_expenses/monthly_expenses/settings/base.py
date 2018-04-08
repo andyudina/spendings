@@ -152,3 +152,6 @@ LOGGING = {
         }
     },
 }
+
+# only one parser is supported - for finnish checks
+PARSER = 'fi_parser'
