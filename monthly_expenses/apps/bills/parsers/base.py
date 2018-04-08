@@ -79,18 +79,18 @@ class BaseParser(object):
         ]
         """
         items = []
-        line_results = []
-        for line in bill_lines:
+        # Iterate over pairs of lines
+        # Sometimes information about item can be splitted into two lines
+        for line_index in range(len(bill_lines)):
+            lines = bill_lines[line_index: line_index + 1]
             # don't proceed further that total sum line
-            if self._is_total_line(line):
+            if self._is_total_line(lines[0]):
                 logger.debug(
-                    'Found total line: "%s"' % line)
+                    'Found total line: "%s"' % lines[0])
                 break
-            is_item, line_result = self._process_line(
-                line, prev_lines=line_results)
-            if is_item:
-                items.append(line_result)
-            line_results.append(line_result)
+            item = self._process_line(*lines)
+            if item:
+                items.append(item)
         if not items:
             raise ValueError('No items found')
         return items
@@ -98,8 +98,7 @@ class BaseParser(object):
     def _process_line(self, line, **kwargs):
         """
         Process bill line.
-        Returns flag, that states if item information found
-        and line information.
+        Returns parsed item or None
         If item is found, line information should be in format:
         {
             'item': 'item-name [string]',

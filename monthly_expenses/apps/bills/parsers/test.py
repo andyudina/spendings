@@ -14,11 +14,10 @@ class TestParser(BaseParser):
     Parse test check images with simple structure
     """
 
-    def _process_line(self, line, **kwargs):
+    def _process_line(self, line, *args, **kwargs):
         """
         Process bill line
-        Returns flag, that states if item information found
-        and line information.
+        Returns item or None if item can not be parsed
         If item is found, line information should be in format:
         {
             'item': 'item-name [string]',
@@ -28,12 +27,12 @@ class TestParser(BaseParser):
         """
         try:
             item = self._get_item_from_line(line)
-            return True, item
+            return item
         except ValueError as e:
             logger.debug(
                 'Line "%s" does not have information about bill items. '
                 'Original error: %s' % (line, e))
-            return False, None
+            return None
 
     def _get_item_from_line(self, line):
         """
