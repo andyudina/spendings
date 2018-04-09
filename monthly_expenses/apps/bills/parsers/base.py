@@ -82,7 +82,7 @@ class BaseParser(object):
         # Iterate over pairs of lines
         # Sometimes information about item can be splitted into two lines
         for line_index in range(len(bill_lines)):
-            lines = bill_lines[line_index: line_index + 1]
+            lines = bill_lines[line_index: line_index + 2]
             # don't proceed further that total sum line
             if self._is_total_line(lines[0]):
                 logger.debug(
