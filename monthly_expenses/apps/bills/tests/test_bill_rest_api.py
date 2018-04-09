@@ -69,8 +69,13 @@ class BillRestAPITest(
         PARSED_BILL = {'test': 'test'}
         parse_bill_mock.return_value = PARSED_BILL
         response = self.upload_bill()
+        bill = Bill.objects.latest('create_time')
         self.assertEqual(
-            response.data, PARSED_BILL)
+            response.data, 
+            {
+                'bill_id': bill.id,
+                'parsed_spendings': PARSED_BILL
+            })
 
     @patch(
         'apps.bills.models.Bill.parse_bill')
@@ -82,10 +87,14 @@ class BillRestAPITest(
         PARSING_ERROR = 'Problem with parsing'
         parse_bill_mock.side_effect = ValueError(PARSING_ERROR)
         response = self.upload_bill()
+        bill = Bill.objects.latest('create_time')
         self.assertEqual(
-            response.data, 
+            response.data,
             {
-                'error': PARSING_ERROR
+                'bill_id': bill.id,
+                'parsed_spendings': {
+                    'error': PARSING_ERROR
+                }
             })
         self.assertEqual(
             response.status_code, status.HTTP_406_NOT_ACCEPTABLE)
