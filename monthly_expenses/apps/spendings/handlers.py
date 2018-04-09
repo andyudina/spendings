@@ -58,8 +58,9 @@ def _aggregate_spendings_by_name(items):
         result[name] = result.get(
             name, 
             {
-                'quantity': 0
+                'quantity': 0,
+                'amount': 0
             })
         result[name]['quantity'] += 1
-        result[name]['amount'] = item['amount']
+        result[name]['amount'] += item['amount']
     return result

@@ -100,6 +100,23 @@ class SpendingCreationTestCase(
         """
         We create spendings automatically on bill creation
         """
+        parse_bill_mock.return_value = self.PARSED_BILL_INFO
+        bill = self.create_bill()
+        self.assertTrue(
+            Spending.objects.filter(
+                    date=datetime.date(2017, 4, 7),
+                    name='test-1',
+                    amount=20.20,
+                    quantity=2,
+                    bill=bill
+                ).exists())
+
+    @patch('apps.bills.models.Bill.parse_bill')
+    def test_bill_successfully_created__spendings_name_changed_to_lowercase(
+            self, parse_bill_mock):
+        """
+        We create spendings with item name in lowercase
+        """
         parse_bill_mock.return_value = {
             'date': '2017-04-07 00:00:00', 
             'items': [
@@ -117,23 +134,6 @@ class SpendingCreationTestCase(
                     name='test-1',
                     amount=10.10,
                     quantity=1,
-                    bill=bill
-                ).exists())
-
-    @patch('apps.bills.models.Bill.parse_bill')
-    def test_bill_successfully_created__spendings_name_changed_to_lowercase(
-            self, parse_bill_mock):
-        """
-        We create spendings with item name in lowercase
-        """
-        parse_bill_mock.return_value = self.PARSED_BILL_INFO
-        bill = self.create_bill()
-        self.assertTrue(
-            Spending.objects.filter(
-                    date=datetime.date(2017, 4, 7),
-                    name='test-1',
-                    amount=10.10,
-                    quantity=2,
                     bill=bill
                 ).exists())
 
@@ -166,7 +166,7 @@ class SpendingCreationTestCase(
             Spending.objects.filter(
                     date=datetime.date(2017, 4, 7),
                     name='test-1',
-                    amount=10.10,
+                    amount=20.20,
                     quantity=2,
                     bill=bill
                 ).count(), 1)

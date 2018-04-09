@@ -27,7 +27,7 @@ class SpendingsManager(models.Manager):
                annotate(
                    bills_number = models.Count('bill', distinct=True),
                    total_quantity=models.Sum('quantity'),
-                   total_amount=models.Sum(models.F('amount') * models.F('quantity'))).\
+                   total_amount=models.Sum('amount')).\
                order_by('-total_amount')
 
 
@@ -42,7 +42,7 @@ class Spending(models.Model):
         default=1, null=False, blank=False)
     # we don't need precise numbers here
     amount = models.FloatField(
-        verbose_name='Price of one item',
+        verbose_name='Total amount of all items in this spendings',
         null=False, blank=False)
     date = models.DateField(
         verbose_name='Date of the spending')

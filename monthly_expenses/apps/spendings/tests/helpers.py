@@ -30,21 +30,21 @@ class TestSpendingsMixin(TestBillMixin):
             {
                 'name': 'test-1',
                 'quantity': 3,
-                'amount': 10.0,
+                'amount': 30.0,
                 'date': datetime.datetime(2018, 4, 5),
                 'bill': bill_1
             },
             {
                 'name': 'test-1',
                 'quantity': 4,
-                'amount': 10.0,
+                'amount': 40.0,
                 'date': datetime.datetime(2018, 4, 6),
                 'bill': bill_2
             },
             {
                 'name': 'test-2',
                 'quantity': 2,
-                'amount': 20.0,
+                'amount': 40.0,
                 'date': datetime.datetime(2018, 4, 5),
                 'bill': bill_1
             },
@@ -58,7 +58,7 @@ class TestSpendingsMixin(TestBillMixin):
             {
                 'name': 'test-3',
                 'quantity': 10,
-                'amount': 21.0,
+                'amount': 210.0,
                 'date': datetime.datetime(2018, 1, 5),
                 'bill': bill_3
             },
