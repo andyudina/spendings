@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Parser for finnish checks based on simple regex
 """
-# -*- coding: utf-8 -*-
 import logging
 import re
 
@@ -47,6 +47,8 @@ class FIParser(BaseParser):
             logger.exception(
                 'Can not parse first line %s' % first_line)
             return None
+        second_line_amount = None
+        second_line_quantity = None
         try:
             (
                 second_line_amount,
@@ -103,15 +105,20 @@ class FIParser(BaseParser):
         """
         # Try find name
         name_match = re.search(
-            '^([\d ]+)?([a-zA-Z\s]+)', line)
+            '^([\d ]+)?([a-zA-Z&\s]+)', line)
         if not name_match:
-            raise ValuerError(
+            raise ValueError(
                 'Can not find item name. Line %s' % line)
         name = name_match.group(2).strip()
         line_after_name = line.split(name)[-1]
+        # if there some not space symbols in the beginning
+        # of the left line, we should remove them
+        # cause they are probably numeric leftovers of the item name
+        # which is ok to skip
+        line_after_name = re.sub(r'^[\S]+', '', line_after_name)
         # Try find amount
         amount = self._get_amount(line_after_name)
-
+   
         return (
                 name,
                 amount,
@@ -123,17 +130,17 @@ class FIParser(BaseParser):
         Try parse quantity and amount from second bill line
         """
         quantity_match = re.search(
-            '^(\s+)?([\d ]+)(kpl)?', line)
+            '^([\d ]+)(kpl|KPL)?', line.strip())
         if not quantity_match:
             raise ValueError(
-                'Can not find quantity. Line %s' % line)
-        quantity = quantity_match.group(2)
+                'Can not find quantity. Line "%s"' % line)
+        quantity = quantity_match.group(1)
         if quantity:
             line = line.split(quantity)[-1]
         amount = self._get_amount(line)
         return (
                 amount,
-                quantity
+                int(quantity.strip())
             )
 
     def _get_amount(self, line):
