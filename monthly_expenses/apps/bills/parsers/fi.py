@@ -149,9 +149,10 @@ class FIParser(BaseParser):
                     'Original error: %s' % (word, e))
         return None
 
-    def _get_total_line(self):
+    def _is_total_line(self, line):
         """
-        Return symbol or string, stating that we reach "total"
-        section in bill. SHould be defined by each parser
+        Check if line has total anount of the check
         """
-        return 'yhteensä'
+        return \
+            'yhteensä' in line.lower() or \
+            'yhteensa' in line.lower()
