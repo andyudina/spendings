@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models
+import logging
+
+from django.db import models, transaction
+
+from .utils import aggregate_spendings_by_name
+
+
+logger = logging.getLogger(__name__)
 
 
 class SpendingsManager(models.Manager):
@@ -29,6 +36,41 @@ class SpendingsManager(models.Manager):
                    total_quantity=models.Sum('quantity'),
                    total_amount=models.Sum('amount')).\
                order_by('-total_amount')
+
+    @transaction.atomic
+    def rewrite_spendings_for_bill(
+            self, bill, date, spendings):
+        """
+        Delete all spendings for bill
+        and create new one form passed spendings.
+
+        Accept spendings as a list of dics:
+        [
+            {
+                'item': [item name str],
+                'quantity': [item quantity int],
+                'amount': [total amount for specified quantity float]
+            }
+        ]
+        """
+        # delete all previous spendings
+        self.filter(
+            bill=bill).delete()
+        # create new spendings
+        items = aggregate_spendings_by_name(
+            validated_data['items'])
+        for name, item in items.items():
+            # impossible to get Integrity error here
+            # because all items were aggregated by name
+            self.create(
+                name=name,
+                quantity=item['quantity'],
+                amount=item['amount'],
+                date=date.date(),
+                bill=bill)
+            logger.debug(
+                'Created item with name %s details %s' % (
+                name, item)) 
 
 
 class Spending(models.Model):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
+"""
+Test python api for spendings model
+"""
 import datetime
 from mock import patch
 
@@ -10,10 +11,10 @@ from apps.spendings.models import Spending
 from .helpers import TestSpendingsMixin
 
 
-class SpendingModelAPITestCase(
+class SpendingAggregationAPITestCase(
         TestSpendingsMixin, TestCase):
     """
-    Test python api for spendings model
+    Test python api for spendings aggregation
     """
 
     def setUp(self):
@@ -71,3 +72,25 @@ class SpendingModelAPITestCase(
                         'bills_number': 2,
                     },
                 ])
+
+
+class RewriteSpendingsAPITestCase(
+        TestSpendingsMixin, TestCase):
+    """
+    Test python api for rewriting bill spendings
+    """
+
+    def test_rewriting_spendings_preaggregated_spendings_created(self):
+        """
+        We preaggregate spendings before saving rewrited spendings 
+        """
+
+    def test_rewriting_spendings_previous_spendings_deleted(self):
+        """
+        We delete previous spendings when rewrite spendings for bill
+        """
+
+    def test_rewriting_spendings_error_raised__previous_spendings_were_not_deleted(self):
+        """
+        We rollback deletion of previous spendings if we fail to create new one
+        """
