@@ -57,7 +57,7 @@ class UploadBillAPI(
             return response.Response({
                     'error': e.args[0]
                 },
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_406_NOT_ACCEPTABLE)
         return response.Response(
             data,
             status=status.HTTP_201_CREATED)

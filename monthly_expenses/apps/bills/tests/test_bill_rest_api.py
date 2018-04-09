@@ -88,7 +88,7 @@ class BillRestAPITest(
                 'error': PARSING_ERROR
             })
         self.assertEqual(
-            response.status_code, status.HTTP_400_BAD_REQUEST)
+            response.status_code, status.HTTP_406_NOT_ACCEPTABLE)
 
     def test_upload_bill_already_exists__error_returned(self):
         """
