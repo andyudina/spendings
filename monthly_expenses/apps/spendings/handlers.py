@@ -54,11 +54,12 @@ def _aggregate_spendings_by_name(items):
     # if the prices are different information of difference will be lost
     result = {}
     for item in items:
-        result[item['item']] = result.get(
-            item['item'], 
+        name = item['item'].lower()
+        result[name] = result.get(
+            name, 
             {
                 'quantity': 0
             })
-        result[item['item']]['quantity'] += 1
-        result[item['item']]['amount'] = item['amount']
+        result[name]['quantity'] += 1
+        result[name]['amount'] = item['amount']
     return result
