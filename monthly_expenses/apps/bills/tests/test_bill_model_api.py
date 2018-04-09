@@ -3,7 +3,7 @@ Tests for python API of apps.bills.models.Bill model
 """
 from mock import Mock, patch
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 from apps.bills.models import Bill
 from .helpers import TestBillMixin
@@ -43,7 +43,6 @@ salon-services.com
 ----------------------------------------------------------------------
 '''
 
-@override_settings(PARSER='test_parser')
 class BillPythonAPITestCase(
         TestBillMixin, TestCase):
     """
@@ -72,6 +71,11 @@ class BillPythonAPITestCase(
 
         TODO: test different bill formats and scenarios
         """
+        # set up test backend
+        from apps.bills import models
+        from apps.bills.parsers import TestParser
+        models.parser = TestParser()
+
         image_to_string_mock.return_value = TEST_PARSED_TEXT
         open_mock.return_value = Mock()
 
@@ -79,7 +83,7 @@ class BillPythonAPITestCase(
         bill_data = bill.parse_bill()
         self.assertEqual(
             bill_data, {
-                "date": "2017-04-07 00:00:00", 
+                "date": "2017-07-04 00:00:00", 
                 "items": [
                     {
                         "item": "HAIR DRYER", 
