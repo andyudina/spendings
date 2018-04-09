@@ -18,6 +18,7 @@ class TestParser(BaseParser):
         """
         Process bill line
         Returns item or None if item can not be parsed
+        and flag that shows if next line should be skipped
         If item is found, line information should be in format:
         {
             'item': 'item-name [string]',
@@ -27,12 +28,12 @@ class TestParser(BaseParser):
         """
         try:
             item = self._get_item_from_line(line)
-            return item
+            return item, False
         except ValueError as e:
             logger.debug(
                 'Line "%s" does not have information about bill items. '
                 'Original error: %s' % (line, e))
-            return None
+            return None, False
 
     def _get_item_from_line(self, line):
         """

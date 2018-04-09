@@ -55,7 +55,8 @@ class BaseParser(object):
                     'Length of word %s is not enough to be date' % word)
                 continue
             try:
-                date = parser.parse(word)
+                date = parser.parse(
+                    word, dayfirst=True)
                 return str(date)
             # not date - ok to skip
             except ValueError as e:
@@ -81,14 +82,25 @@ class BaseParser(object):
         items = []
         # Iterate over pairs of lines
         # Sometimes information about item can be splitted into two lines
+        skip_line = False
         for line_index in range(len(bill_lines)):
+            # We process pairs of lines
+            # in case second line in pair was used
+            # together with first line to parse the item
+            if skip_line:
+                logger.debug(
+                    'Skipped line %s '
+                    'Used to build previous item' % \
+                    bill_lines[line_index])
+                skip_line = False
+                continue
             lines = bill_lines[line_index: line_index + 2]
             # don't proceed further that total sum line
             if self._is_total_line(lines[0]):
                 logger.debug(
                     'Found total line: "%s"' % lines[0])
                 break
-            item = self._process_line(*lines)
+            item, skip_line = self._process_line(*lines)
             if item:
                 items.append(item)
         if not items:
@@ -98,7 +110,8 @@ class BaseParser(object):
     def _process_line(self, line, *args, **kwargs):
         """
         Process bill line.
-        Returns parsed item or None
+        Returns parsed item or None and flag that states 
+        if next line need to be skipped
         If item is found, line information should be in format:
         {
             'item': 'item-name [string]',

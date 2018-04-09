@@ -15,11 +15,20 @@ class FIParser(BaseParser):
     """
     Parse test checks images with simple structure
     """
+    # list of words that we assume not to be item names
+    # includes words related to taxation information
+    BLOCKED_WORDS = [
+       'vero',
+       'verton',
+       'alv'
+    ]
 
     def _process_line(self, line, *args, **kwargs):
         """
         Process bill line
         Returns item or None if item can not be parsed
+        and flag that showa if second line passed was used
+        to construct the item
         If item is found, line information should be in format:
         {
             'item': 'item-name [string]',
@@ -30,12 +39,14 @@ class FIParser(BaseParser):
         if len(args) == 1:
             return self._process_double_lines(line, args[0])
         else:
-            return self._process_single_line(line)
+            return self._process_single_line(line), False
 
     def _process_double_lines(
             self, first_line, second_line):
         """
         Try extract amount, quantity and name from two sequential lines
+        Returns item and flag that shows if second line
+        was used to build the item
         """
         try:
             (
@@ -46,7 +57,7 @@ class FIParser(BaseParser):
         except ValueError:
             logger.exception(
                 'Can not parse first line %s' % first_line)
-            return None
+            return None, False
         second_line_amount = None
         second_line_quantity = None
         try:
@@ -66,12 +77,18 @@ class FIParser(BaseParser):
                 'Result: name - %s, amount - %s, quantity - %s' % (
                         str([first_line, second_line]),
                         name, amount, quantity))
-            return None
-        return {
+            return None, False
+        # check if second line was used to build
+        # the item
+        second_line_was_used = \
+            amount == second_line_amount or \
+            quantity == second_line_quantity
+        item = {
             'item': name,
             'amount': amount,
             'quantity': quantity
         }
+        return item, second_line_was_used
 
     def _process_single_line(self, line):
         """
@@ -110,6 +127,10 @@ class FIParser(BaseParser):
             raise ValueError(
                 'Can not find item name. Line %s' % line)
         name = name_match.group(2).strip()
+        if not self._is_word_can_be_item_name(name):
+            raise ValueError(
+                'Word is not item name: %s. Line %s' % (
+                    name, line))
         line_after_name = line.split(name)[-1]
         # if there some not space symbols in the beginning
         # of the left line, we should remove them
@@ -148,8 +169,17 @@ class FIParser(BaseParser):
         Extract amount from bill line
         """
         for word in line.split()[::-1]:
+            amount_match = re.match(
+                    '^([1-9]\d*[.,]\d+)(EUR|eur|€)?$', 
+                    word.strip())
+            if not amount_match:
+                logger.debug(
+                    'Word %s does not contain amount. '
+                    'Regex check failed' % word)
+                continue
+            amount = amount_match.group(1)
             try:
-                return float(word.replace(',', '.'))
+                return float(amount.replace(',', '.'))
             except ValueError as e:
                 logger.debug(
                     'Word %s does not contain amount. '
@@ -161,5 +191,10 @@ class FIParser(BaseParser):
         Check if line has total anount of the check
         """
         return \
-            'yhteensä' in line.lower() or \
-            'yhteensa' in line.lower()
+            'yhteens' in line.lower()
+
+    def _is_word_can_be_item_name(self, name):
+        """
+        Check if word can be item name
+        """
+        return name.lower() not in self.BLOCKED_WORDS
