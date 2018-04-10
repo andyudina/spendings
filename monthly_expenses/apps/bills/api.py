@@ -1,6 +1,8 @@
 """
 REST API endpoints to parse and upload bills images
 """
+import logging
+
 from django.db import transaction
 from rest_framework import (
     status, serializers, 
@@ -10,6 +12,7 @@ from .models import Bill
 from .utils import generate_hash_from_image
 
 
+logger = logging.getLogger(__name__)
 IMAGE_ALREADY_UPLOADED_ERROR = 'This image was already uploaded'
 
 
@@ -41,7 +44,35 @@ class UploadBillAPI(
         generics.GenericAPIView):
     """
     Upload bill if not exist
-    Returns parsed bill info
+    Returns parsed bill info and bill id.
+
+    Successfull response:
+        - status code: 201
+        - format: {
+            'bill_id': [bill_id int],
+            'parsed_spendings': {
+                'date': '%Y-%m-%d 00:00:00',
+                'items': [
+                    {
+                        'item': [item name str],
+                        'quantity': [item quantity int],
+                        'amount': [item amount float]
+                    }
+                ]
+            }
+        }
+
+    Bill can not be parsed:
+        - status code: 406
+        - format: {
+            'bill_id': [bill_id int],
+            'parsed_spendings': {
+                'error': [parsing error str]
+            }
+        }
+
+    Problems with upload:
+        - status code: 400
     """
     serializer_class = CreateBillSerializer
     # TODO: permissions to APIs
@@ -51,14 +82,21 @@ class UploadBillAPI(
         serializer.is_valid(raise_exception=True)
         with transaction.atomic():
             bill = serializer.save()
+        response_data = {
+            'bill': bill.id}
         try:
-            data = bill.parse_bill()
+            # try parse bill and return parsed info
+            response_data['parsed_spendings'] = bill.parse_bill()
         except ValueError as e:
-            return response.Response({
-                    'error': e.args[0]
-                },
-                status=status.HTTP_400_BAD_REQUEST)
+            logger.debug(
+                'Can not parse spendins in bill %d' % bill.id)
+            # Return parsing error if bill can not be parsed
+            response_data['parsed_spendings'] = {
+                'error': e.args[0]}
+            return response.Response(
+                response_data,
+                status=status.HTTP_406_NOT_ACCEPTABLE)
         return response.Response(
-            data,
+            response_data,
             status=status.HTTP_201_CREATED)
 

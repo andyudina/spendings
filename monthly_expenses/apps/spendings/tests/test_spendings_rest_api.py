@@ -2,18 +2,20 @@
 Test REST APIs for spendings
 """
 import datetime
+import json
 
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from rest_framework import status
 
+from apps.spendings.models import Spending
 from .helpers import TestSpendingsMixin
 
 
-class SpendingRestAPITestCase(
+class SpendingAggregationRestAPITestCase(
         TestSpendingsMixin, TestCase):
     """
-    Test rest api for spendings
+    Test rest api for spendings aggregation
     """
 
     def setUp(self):
@@ -61,3 +63,92 @@ class SpendingRestAPITestCase(
                         'bills_number': 2,
                     },
             ])
+
+
+class RewriteSpendinRestAPITestCase(
+        TestSpendingsMixin, TestCase):
+    """
+    Test rest api to rewrite spendings
+    """
+
+    def setUp(self):
+        self.date = '2018-06-05 00:00:00'
+        self.bill = self.create_bill()
+        self.items = [
+            {
+                'item': 'test-1',
+                'quantity': 2,
+                'amount': 20.20
+            },
+        ]
+
+    def rewrite_spendings_for_bill(
+            self, bill=None, date=None, items=None):
+        bill = bill or self.bill.id
+        date = date or self.date
+        items = items if items is not None else self.items
+        data = {
+            'bill': bill,
+            'date': date,
+            'items': items
+        }
+        return self.client.post(
+            reverse('rewrite-spendings'),
+            json.dumps(data),
+            content_type='application/json')
+
+    def test_successfully_rewriten_spendings__ok_response_returned(self):
+        """
+        We return 201 created if new spendings were successfully created
+        """
+        response = self.rewrite_spendings_for_bill()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED)
+
+    def test_successfully_create_spendings(self):
+        """
+        We successfully create new spendings
+        """
+        response = self.rewrite_spendings_for_bill()
+        self.assertTrue(
+            Spending.objects.filter(
+                bill=self.bill,
+                date=datetime.date(2018, 6, 5),
+                name='test-1',
+                quantity=2,
+                amount=20.20).exists())
+
+    def test_wrong_bill_id__bad_request_returned(self):
+        """
+        We return 400 response if bill can not be found
+        """
+        response = self.rewrite_spendings_for_bill(
+            bill=self.bill.id + 1)
+        self.assertIn(
+            'bill', response.data)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_unknown_date_format__bad_request_returned(self):
+        """
+        We return 400 response if date was passed in wrong format
+        """
+        response = self.rewrite_spendings_for_bill(date='03-04-2018')
+        self.assertIn(
+            'date', response.data)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_empty_items__bad_request_returned(self):
+        """
+        We return 400 response if empty items were passe
+        """
+        response = self.rewrite_spendings_for_bill(items=[])
+        self.assertIn(
+            'items', response.data)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_400_BAD_REQUEST)
