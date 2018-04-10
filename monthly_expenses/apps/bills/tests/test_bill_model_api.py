@@ -3,10 +3,8 @@ Tests for python API of apps.bills.models.Bill model
 """
 from mock import Mock, patch
 
-from django.test import TestCase
-
 from apps.bills.models import Bill
-from .helpers import TestBillMixin
+from .helpers import BillTestCase
 
 
 TEST_PARSED_TEXT = '''
@@ -43,11 +41,11 @@ salon-services.com
 ----------------------------------------------------------------------
 '''
 
-class BillPythonAPITestCase(
-        TestBillMixin, TestCase):
+class BillPythonAPITestCase(BillTestCase):
     """
     Test domain logic for Bill model
     """
+
 
     def test_create_bill__hash_saved(self):
         """

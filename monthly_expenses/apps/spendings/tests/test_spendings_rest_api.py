@@ -9,11 +9,11 @@ from django.test import TestCase
 from rest_framework import status
 
 from apps.spendings.models import Spending
-from .helpers import TestSpendingsMixin
+from .helpers import SpendingsTestCase
 
 
 class SpendingAggregationRestAPITestCase(
-        TestSpendingsMixin, TestCase):
+        SpendingsTestCase):
     """
     Test rest api for spendings aggregation
     """
@@ -66,7 +66,7 @@ class SpendingAggregationRestAPITestCase(
 
 
 class RewriteSpendinRestAPITestCase(
-        TestSpendingsMixin, TestCase):
+        SpendingsTestCase):
     """
     Test rest api to rewrite spendings
     """

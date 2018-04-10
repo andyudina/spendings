@@ -4,6 +4,7 @@ Test tools for bill app
 from hashlib import sha256
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase
 
 from apps.bills.models import Bill
 
@@ -32,4 +33,16 @@ class TestBillMixin(object):
         image_hash = sha256()
         image_hash.update(DEFAULT_CHECK_IMAGE)
         return image_hash.hexdigest()
+
+
+class BillTestCase(
+        TestBillMixin, TestCase):
+    """
+    Base test case class for bills
+    """
+
+    def tearDown(self):
+        # manualluy delete bills
+        # to force their media to be deleted also
+        Bill.objects.all().delete()    
  
