@@ -6,8 +6,8 @@ from rest_framework import (
     generics, permissions)
 
 from apps.bills.models import Bill
+from apps.users.permissions import IsBillOwner
 from .models import Spending
-from .permissions import IsBillOwner
 
 
 class AggregatedByNameSpendingSerializer(
