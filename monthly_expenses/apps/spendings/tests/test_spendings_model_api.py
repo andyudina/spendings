@@ -8,11 +8,11 @@ from mock import patch
 from django.test import TestCase
 
 from apps.spendings.models import Spending
-from .helpers import TestSpendingsMixin
+from .helpers import SpendingsTestCase
 
 
 class SpendingAggregationAPITestCase(
-        TestSpendingsMixin, TestCase):
+        SpendingsTestCase):
     """
     Test python api for spendings aggregation
     """
@@ -75,7 +75,7 @@ class SpendingAggregationAPITestCase(
 
 
 class RewriteSpendingsAPITestCase(
-        TestSpendingsMixin, TestCase):
+        SpendingsTestCase):
     """
     Test python api for rewriting bill spendings
     """

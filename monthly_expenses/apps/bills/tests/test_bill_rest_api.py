@@ -11,11 +11,10 @@ from rest_framework import status
 from apps.bills.api import IMAGE_ALREADY_UPLOADED_ERROR
 from apps.bills.models import Bill
 from .check_image import CHECK_IMAGE as DEFAULT_CHECK_IMAGE
-from .helpers import TestBillMixin
+from .helpers import BillTestCase
 
 
-class BillRestAPITest(
-        TestBillMixin, TestCase):
+class BillRestAPITest(BillTestCase):
     """
     Test rest api endpoints for uploading and managing bills
     """

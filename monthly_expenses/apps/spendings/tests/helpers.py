@@ -4,13 +4,13 @@ Helpers for spendings apis tests (python and rest)
 import datetime
 from mock import patch
 
-from apps.bills.tests.helpers import TestBillMixin
+from apps.bills.tests.helpers import BillTestCase
 from apps.spendings.models import Spending
 
 
-class TestSpendingsMixin(TestBillMixin):
+class SpendingsTestCase(BillTestCase):
     """
-    Helper for spenidngs tests
+    Base class for spendings tests
     """
 
     @patch(
