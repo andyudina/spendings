@@ -18,11 +18,16 @@ class BillRestAPITest(BillTestCase):
     """
     Test rest api endpoints for uploading and managing bills
     """
+    def setUp(self):
+        self.user = self.get_or_create_user()
 
-    def upload_bill(self):
+    def upload_bill(
+            self, auth_needed=True):
         """
         Helper to upload bill via api
         """
+        if auth_needed:
+            self.client.force_login(self.user)
         return self.client.post(
             reverse('bill'),
             {
@@ -57,6 +62,20 @@ class BillRestAPITest(BillTestCase):
         self.assertTrue(
             Bill.objects.filter(
                 sha256_hash_hex=self.calculate_expected_hash()).exists())
+
+    @patch(
+        'apps.bills.models.Bill.parse_bill')
+    def test_upload_bill__creator_saved(
+            self, parse_bill_mock):
+        """
+        We save bill creator
+        """
+        parse_bill_mock.return_value = {}
+        self.upload_bill()
+        bill = Bill.objects.get(
+                sha256_hash_hex=self.calculate_expected_hash())
+        self.assertTrue(
+            bill.user, self.user)   
 
     @patch(
         'apps.bills.models.Bill.parse_bill')
@@ -96,7 +115,8 @@ class BillRestAPITest(BillTestCase):
                 }
             })
         self.assertEqual(
-            response.status_code, status.HTTP_406_NOT_ACCEPTABLE)
+            response.status_code, 
+            status.HTTP_406_NOT_ACCEPTABLE)
 
     def test_upload_bill_already_exists__error_returned(self):
         """
@@ -111,5 +131,15 @@ class BillRestAPITest(BillTestCase):
             response.data,
             {
                 'image': [IMAGE_ALREADY_UPLOADED_ERROR]
-            })    
+            })
 
+    def test_not_authenticated_tries_load_bill__error_returned(self):
+        """
+        We return 403 forbidden if user is not logged in
+        while he is trying to create a bill
+        """   
+        response = self.upload_bill(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_403_FORBIDDEN)

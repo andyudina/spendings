@@ -4,9 +4,10 @@ REST API endpoints to parse and upload bills images
 import logging
 
 from django.db import transaction
+from django.contrib.auth.models import User
 from rest_framework import (
     status, serializers, 
-    generics, response)
+    generics, response, permissions)
 
 from .models import Bill
 from .utils import generate_hash_from_image
@@ -22,9 +23,14 @@ class CreateBillSerializer(
     Serialiser for bill creation
     Validates if bill was already uploaded 
     """
+    user = serializers.PrimaryKeyRelatedField(
+        default=serializers.CurrentUserDefault(),
+        queryset=User.objects.all()
+    )
+
     class Meta:
         model = Bill
-        fields = ('image', )
+        fields = ('image', 'user')
 
     def validate_image(self, image):
         """
@@ -75,7 +81,9 @@ class UploadBillAPI(
         - status code: 400
     """
     serializer_class = CreateBillSerializer
-    # TODO: permissions to APIs
+    permission_classes = (
+        permissions.IsAuthenticated, )
+
     def post(
             self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -99,4 +107,3 @@ class UploadBillAPI(
         return response.Response(
             response_data,
             status=status.HTTP_201_CREATED)
-
