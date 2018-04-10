@@ -19,15 +19,20 @@ class SpendingAggregationRestAPITestCase(
     """
 
     def setUp(self):
+        self.user = self.get_or_create_user()
         self.create_spendings()
 
     def get_aggregated_by_name_spendings(
-            self, begin_time=None, end_time=None):
+            self, 
+            begin_time=None, end_time=None,
+            need_auth=True, user=None):
         get_request = {}
         if begin_time:
             get_request['begin_time'] = begin_time
         if end_time:
             get_request['end_time'] = end_time
+        if need_auth:
+            self.client.force_login(user or self.user)
         return self.client.get(
             reverse('spendings-aggregated-by-name'),
             get_request)
@@ -40,6 +45,31 @@ class SpendingAggregationRestAPITestCase(
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK)
+
+    def test_user_not_login__403_response_returned(self):
+        """
+        We return 403 forbidden response if user is not logined
+        """
+        response = self.get_aggregated_by_name_spendings(
+            need_auth=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_not_user_spendings_are_filtered_out(self):
+        """
+        We do not include spendings from other users
+        to result set
+        """
+        new_user =\
+            self.get_or_create_user(
+                email='test-1@test.com')
+        new_bill = self.create_bill(user=new_user)
+        # retrieve spendings for new_user
+        response = self.get_aggregated_by_name_spendings(
+            user=new_user)
+        self.assertEqual(
+            response.data, [])       
 
     def test_aggregated_by_name_spendings__aggregated_spendings_returned(self):   
         """

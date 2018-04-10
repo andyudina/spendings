@@ -16,18 +16,20 @@ class TestBillMixin(object):
     """
     Mixin with test tools for bills app
     """
-    def get_or_create_user(self):
+    def get_or_create_user(
+            self, email=None):
+        email = email or 'test@test.com'
         user, _ = User.objects.get_or_create(
-            username='test@test.com',
-            email='test@test.com',
+            username=email,
+            email=email,
             password='#')
         return user
 
-    def create_bill(self):
+    def create_bill(self, user=None):
         """
         Helper to create a check image with predefined content
         """
-        user = self.get_or_create_user()
+        user = user or self.get_or_create_user()
         return Bill.objects.create(
                 user=user,
                 image=SimpleUploadedFile(

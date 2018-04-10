@@ -18,6 +18,7 @@ class SpendingAggregationAPITestCase(
     """
 
     def setUp(self):
+        self.user = self.get_or_create_user()
         self.create_spendings()
 
     def test_speding_aggregation_all_spendings(self):
@@ -25,7 +26,9 @@ class SpendingAggregationAPITestCase(
         Python API for spending aggregation 
         without filtering by spending date
         """
-        aggregation = Spending.objects.get_spendings_in_time_frame()
+        aggregation = Spending.objects.\
+            get_spendings_in_time_frame(
+                user=self.user)
         self.assertListEqual(
                 list(aggregation),
                 [
@@ -55,6 +58,7 @@ class SpendingAggregationAPITestCase(
         with filtering by spending date
         """
         aggregation = Spending.objects.get_spendings_in_time_frame(
+            self.user,
             begin_time=datetime.datetime(2018, 4, 4))
         self.assertListEqual(
                 list(aggregation),
@@ -72,6 +76,34 @@ class SpendingAggregationAPITestCase(
                         'bills_number': 2,
                     },
                 ])
+
+    def test_spendings_aggregation__filter_by_user(self):
+        """
+        We filter out spendings that was not created by
+        passed user
+        """
+        new_user =\
+            self.get_or_create_user(
+                email='test-1@test.com')
+        new_bill = self.create_bill(user=new_user)
+        spending = Spending.objects.create(
+            date=datetime.date(2018, 6, 6),
+            bill=new_bill,
+            name='new-test-1',
+            amount=10.10,
+            quantity=1)
+        aggregation = Spending.objects.\
+            get_spendings_in_time_frame(new_user)
+        self.assertListEqual(
+            list(aggregation), 
+            [
+                {
+                    'name': 'new-test-1',
+                    'total_amount': 10.1,
+                    'total_quantity': 1,
+                    'bills_number': 1,
+                }
+            ])
 
 
 class RewriteSpendingsAPITestCase(
