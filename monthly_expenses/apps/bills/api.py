@@ -83,7 +83,7 @@ class UploadBillAPI(
         with transaction.atomic():
             bill = serializer.save()
         response_data = {
-            'bill_id': bill.id}
+            'bill': bill.id}
         try:
             # try parse bill and return parsed info
             response_data['parsed_spendings'] = bill.parse_bill()

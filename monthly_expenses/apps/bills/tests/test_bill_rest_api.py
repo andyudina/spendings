@@ -73,7 +73,7 @@ class BillRestAPITest(
         self.assertEqual(
             response.data, 
             {
-                'bill_id': bill.id,
+                'bill': bill.id,
                 'parsed_spendings': PARSED_BILL
             })
 
@@ -91,7 +91,7 @@ class BillRestAPITest(
         self.assertEqual(
             response.data,
             {
-                'bill_id': bill.id,
+                'bill': bill.id,
                 'parsed_spendings': {
                     'error': PARSING_ERROR
                 }
