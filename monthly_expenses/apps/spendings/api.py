@@ -14,10 +14,10 @@ class AggregatedByNameSpendingSerializer(
     """
     Read only serializer for aggregated by name spedings
     """
-    name = serializers.CharField()
-    bills_number = serializers.IntegerField()
-    total_quantity = serializers.IntegerField()
-    total_amount = serializers.FloatField()
+    name = serializers.CharField(required=True)
+    bills_number = serializers.IntegerField(required=True)
+    total_quantity = serializers.IntegerField(required=True)
+    total_amount = serializers.FloatField(required=True)
 
 
 
@@ -41,9 +41,12 @@ class ItemSerializer(
     """
     Validate individual spending
     """
-    item = serializers.CharField()
-    amount = serializers.FloatField()
-    quantity = serializers.IntegerField()
+    item = serializers.CharField(
+        required=True)
+    amount = serializers.FloatField(
+        required=True)
+    quantity = serializers.IntegerField(
+        required=True)
 
 
 class RewriteSpendingsSerializer(
@@ -52,16 +55,26 @@ class RewriteSpendingsSerializer(
     Validate bill data and rewrite spendings
     """
     bill = serializers.PrimaryKeyRelatedField(
+        required=True,
         queryset=Bill.objects.all())
     date = serializers.DateTimeField(
+        required=True,
         format='%Y-%m-%d %H:%M:%S')
-    items = ItemSerializer(many=True)
+    items = ItemSerializer(
+        required=True,
+        many=True)
 
-    def create(self, validated_data):
+    def validate_items(self, items):
+        if not items:
+            raise serializers.ValidationError(
+                'Items can not be blank')
+        return items
+
+    def save(self):
         Spending.objects.rewrite_spendings_for_bill(
-            validated_data['bill'],
-            validated_data['date'],
-            validated_data['items'])
+            self.validated_data['bill'],
+            self.validated_data['date'],
+            self.validated_data['items'])
  
 
 class RewriteSpending(
@@ -74,3 +87,4 @@ class RewriteSpending(
     """
     # TODO: add authorization
     serializer_class = RewriteSpendingsSerializer
+
