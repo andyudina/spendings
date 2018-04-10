@@ -17,7 +17,8 @@ class SpendingsManager(models.Manager):
     """
 
     def get_spendings_in_time_frame(
-            self, begin_time=None, end_time=None):
+            self, user, 
+            begin_time=None, end_time=None):
         """
         Aggregates spendings by date and item
         Returns sorted list of items with their quanuity and total amount
@@ -25,7 +26,7 @@ class SpendingsManager(models.Manager):
         End time is not included.
         Returns annotated QuerySet
         """
-        qs = self.all()
+        qs = self.filter(bill__user=user)
         if begin_time:
             qs = qs.filter(date__gte=begin_time)
         if end_time:

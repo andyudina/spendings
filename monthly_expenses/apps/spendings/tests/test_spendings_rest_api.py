@@ -19,15 +19,20 @@ class SpendingAggregationRestAPITestCase(
     """
 
     def setUp(self):
+        self.user = self.get_or_create_user()
         self.create_spendings()
 
     def get_aggregated_by_name_spendings(
-            self, begin_time=None, end_time=None):
+            self, 
+            begin_time=None, end_time=None,
+            need_auth=True, user=None):
         get_request = {}
         if begin_time:
             get_request['begin_time'] = begin_time
         if end_time:
             get_request['end_time'] = end_time
+        if need_auth:
+            self.client.force_login(user or self.user)
         return self.client.get(
             reverse('spendings-aggregated-by-name'),
             get_request)
@@ -40,6 +45,31 @@ class SpendingAggregationRestAPITestCase(
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK)
+
+    def test_user_not_login__403_response_returned(self):
+        """
+        We return 403 forbidden response if user is not logined
+        """
+        response = self.get_aggregated_by_name_spendings(
+            need_auth=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_not_user_spendings_are_filtered_out(self):
+        """
+        We do not include spendings from other users
+        to result set
+        """
+        new_user =\
+            self.get_or_create_user(
+                email='test-1@test.com')
+        new_bill = self.create_bill(user=new_user)
+        # retrieve spendings for new_user
+        response = self.get_aggregated_by_name_spendings(
+            user=new_user)
+        self.assertEqual(
+            response.data, [])       
 
     def test_aggregated_by_name_spendings__aggregated_spendings_returned(self):   
         """
@@ -72,6 +102,7 @@ class RewriteSpendinRestAPITestCase(
     """
 
     def setUp(self):
+        self.user = self.get_or_create_user()
         self.date = '2018-06-05 00:00:00'
         self.bill = self.create_bill()
         self.items = [
@@ -83,7 +114,9 @@ class RewriteSpendinRestAPITestCase(
         ]
 
     def rewrite_spendings_for_bill(
-            self, bill=None, date=None, items=None):
+            self, 
+            bill=None, date=None, items=None,
+            need_auth=True, user=None):
         bill = bill or self.bill.id
         date = date or self.date
         items = items if items is not None else self.items
@@ -92,6 +125,8 @@ class RewriteSpendinRestAPITestCase(
             'date': date,
             'items': items
         }
+        if need_auth:
+            self.client.force_login(user or self.user)
         return self.client.post(
             reverse('rewrite-spendings'),
             json.dumps(data),
@@ -119,18 +154,6 @@ class RewriteSpendinRestAPITestCase(
                 quantity=2,
                 amount=20.20).exists())
 
-    def test_wrong_bill_id__bad_request_returned(self):
-        """
-        We return 400 response if bill can not be found
-        """
-        response = self.rewrite_spendings_for_bill(
-            bill=self.bill.id + 1)
-        self.assertIn(
-            'bill', response.data)
-        self.assertEqual(
-            response.status_code, 
-            status.HTTP_400_BAD_REQUEST)
-
     def test_unknown_date_format__bad_request_returned(self):
         """
         We return 400 response if date was passed in wrong format
@@ -152,3 +175,25 @@ class RewriteSpendinRestAPITestCase(
         self.assertEqual(
             response.status_code, 
             status.HTTP_400_BAD_REQUEST)
+
+    def test_user_is_not_logged_in__forbidden_returned(self):
+        """
+        We return 403 forbidden if user is not logged in
+        """
+        response = self.rewrite_spendings_for_bill(
+            need_auth=False)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_403_FORBIDDEN)     
+
+    def test_user_tries_to_modify_another_user_spendings__forbidden_returned(self):
+        """
+        We return 403 forbidden if user tries to access another user bill
+        """
+        new_user = self.get_or_create_user(
+            email='new-test-1@test.com')
+        response = self.rewrite_spendings_for_bill(
+            user=new_user)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_403_FORBIDDEN) 

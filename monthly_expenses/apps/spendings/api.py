@@ -3,9 +3,10 @@ Rest API to display aggregated spendings
 """
 from rest_framework import (
     serializers, 
-    generics)
+    generics, permissions)
 
 from apps.bills.models import Bill
+from apps.users.permissions import IsBillOwner
 from .models import Spending
 
 
@@ -26,12 +27,14 @@ class ListAggregatedByNameSpendings(
     """
     List aggregated by name spendings in given timeframe
     """
-    # TODO: add authorization
     serializer_class = AggregatedByNameSpendingSerializer
+    permission_classes = (
+        permissions.IsAuthenticated, )
 
     def get_queryset(self):
         # TODO: validate begin_time and end_time 
         return Spending.objects.get_spendings_in_time_frame(
+            self.request.user,
             begin_time=self.request.GET.get('begin_time', None),
             end_time=self.request.GET.get('end_time', None))
 
@@ -85,6 +88,8 @@ class RewriteSpending(
 
     Warning: preious spendings will be deleted
     """
-    # TODO: add authorization
     serializer_class = RewriteSpendingsSerializer
+    permission_classes = (
+        permissions.IsAuthenticated, 
+        IsBillOwner)
 

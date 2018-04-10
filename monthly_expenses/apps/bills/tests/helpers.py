@@ -3,6 +3,7 @@ Test tools for bill app
 """
 from hashlib import sha256
 
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
@@ -15,12 +16,22 @@ class TestBillMixin(object):
     """
     Mixin with test tools for bills app
     """
+    def get_or_create_user(
+            self, email=None):
+        email = email or 'test@test.com'
+        user, _ = User.objects.get_or_create(
+            username=email,
+            email=email,
+            password='#')
+        return user
 
-    def create_bill(self):
+    def create_bill(self, user=None):
         """
         Helper to create a check image with predefined content
         """
+        user = user or self.get_or_create_user()
         return Bill.objects.create(
+                user=user,
                 image=SimpleUploadedFile(
                     name='test_check.jpg', 
                     content=DEFAULT_CHECK_IMAGE, 

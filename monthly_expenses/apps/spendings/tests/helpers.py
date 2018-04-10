@@ -65,4 +65,4 @@ class SpendingsTestCase(BillTestCase):
         ]
         for spending_dict in SPENDINGS:
             Spending.objects.create(
-                **spending_dict)    
+                **spending_dict)
