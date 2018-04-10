@@ -22,7 +22,6 @@ class SpendingsTestCase(BillTestCase):
         return self.create_bill()
 
     def create_spendings(self):
-        user = self.get_or_create_user()
         bill_1 = self.create_bill_with_mock_hash('bill-1')
         bill_2 = self.create_bill_with_mock_hash('bill-2')
         bill_3 = self.create_bill_with_mock_hash('bill-3')
@@ -66,5 +65,4 @@ class SpendingsTestCase(BillTestCase):
         ]
         for spending_dict in SPENDINGS:
             Spending.objects.create(
-                user=user,
                 **spending_dict)
