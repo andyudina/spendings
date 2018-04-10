@@ -7,6 +7,7 @@ from rest_framework import (
 
 from apps.bills.models import Bill
 from .models import Spending
+from .permissions import IsBillOwner
 
 
 class AggregatedByNameSpendingSerializer(
@@ -87,6 +88,8 @@ class RewriteSpending(
 
     Warning: preious spendings will be deleted
     """
-    # TODO: add authorization
     serializer_class = RewriteSpendingsSerializer
+    permission_classes = (
+        permissions.IsAuthenticated, 
+        IsBillOwner)
 
