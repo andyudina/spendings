@@ -15,6 +15,6 @@ def aggregate_spendings_by_name(items):
                 'quantity': 0,
                 'amount': 0
             })
-        result[name]['quantity'] += 1
+        result[name]['quantity'] += item['quantity']
         result[name]['amount'] += item['amount']
     return result

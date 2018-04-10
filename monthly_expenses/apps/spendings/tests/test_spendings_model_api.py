@@ -79,18 +79,111 @@ class RewriteSpendingsAPITestCase(
     """
     Test python api for rewriting bill spendings
     """
+    def setUp(self):
+        self.bill = self.create_bill()
 
     def test_rewriting_spendings_preaggregated_spendings_created(self):
         """
         We preaggregate spendings before saving rewrited spendings 
         """
+        items = [
+            {
+                'item': 'test-1',
+                'quantity': 2,
+                'amount': 20.20
+            },
+            {
+                'item': 'test-1',
+                'quantity': 10,
+                'amount': 101
+            }
+        ]
+        date = datetime.datetime(2018, 6, 6)
+        Spending.objects.\
+            rewrite_spendings_for_bill(self.bill, date, items)
+        self.assertTrue(
+            Spending.objects.filter(
+                name='test-1',
+                quantity=12,
+                amount=121.20,
+                date=date.date(),
+                bill=self.bill).exists())
+
+    def test_rewriting_spendings__item_name_changed_to_lowercase(self):
+        """
+        We save all spendings name in lowercase
+        """
+        items = [
+            {
+                'item': 'TEST-1',
+                'quantity': 1,
+                'amount': 10.10
+            }
+        ]
+        date = datetime.datetime(2018, 5, 6)
+        Spending.objects.\
+            rewrite_spendings_for_bill(self.bill, date, items)
+        self.assertTrue(
+            Spending.objects.filter(
+                name='test-1',
+                quantity=1,
+                amount=10.10,
+                date=date.date(),
+                bill=self.bill).exists())
 
     def test_rewriting_spendings_previous_spendings_deleted(self):
         """
         We delete previous spendings when rewrite spendings for bill
         """
+        items = [
+            {
+                'item': 'TEST-1',
+                'quantity': 1,
+                'amount': 10.10
+            }
+        ]
+        date = datetime.datetime(2018, 5, 6)       
+        previous_spending = Spending.objects.create(
+            name='test-0',
+            quantity=1,
+            amount=10.10,
+            date=date.date(),
+            bill=self.bill)
+        Spending.objects.\
+            rewrite_spendings_for_bill(self.bill, date, items)
+        self.assertFalse(
+            Spending.objects.\
+                filter(id=previous_spending.id).\
+                exists())       
 
-    def test_rewriting_spendings_error_raised__previous_spendings_were_not_deleted(self):
+    @patch(
+        'apps.spendings.models.aggregate_spendings_by_name')
+    def test_rewriting_spendings_error_raised__previous_spendings_were_not_deleted(
+            self, aggregate_spendings_by_name_mock):
         """
         We rollback deletion of previous spendings if we fail to create new one
         """
+        aggregate_spendings_by_name_mock.side_effect = ValueError('Just for tests')
+        items = [
+            {
+                'item': 'TEST-1',
+                'quantity': 1,
+                'amount': 10.10
+            }
+        ]
+        date = datetime.datetime(2018, 5, 6)       
+        previous_spending = Spending.objects.create(
+            name='test-0',
+            quantity=1,
+            amount=10.10,
+            date=date.date(),
+            bill=self.bill)
+        # check that mock worked
+        with self.assertRaises(ValueError):
+            Spending.objects.\
+                rewrite_spendings_for_bill(self.bill, date, items)
+        # check that object was not deleted
+        self.assertTrue(
+            Spending.objects.\
+                filter(id=previous_spending.id).\
+                exists())

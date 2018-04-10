@@ -58,7 +58,7 @@ class SpendingsManager(models.Manager):
             bill=bill).delete()
         # create new spendings
         items = aggregate_spendings_by_name(
-            validated_data['items'])
+            spendings)
         for name, item in items.items():
             # impossible to get Integrity error here
             # because all items were aggregated by name

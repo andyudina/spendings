@@ -46,10 +46,10 @@ class ItemSerializer(
     quantity = serializers.IntegerField()
 
 
-class CreateSpendingsSerializer(
+class RewriteSpendingsSerializer(
         serializers.Serializer):
     """
-    Validate bill data and create spendings
+    Validate bill data and rewrite spendings
     """
     bill = serializers.PrimaryKeyRelatedField(
         queryset=Bill.objects.all())
@@ -64,7 +64,7 @@ class CreateSpendingsSerializer(
             validated_data['items'])
  
 
-class CreateSpending(
+class RewriteSpending(
         generics.CreateAPIView):
     """
     Rewrite spendings related to bill
@@ -73,4 +73,4 @@ class CreateSpending(
     Warning: preious spendings will be deleted
     """
     # TODO: add authorization
-    serializer_class = CreateSpendingsSerializer
+    serializer_class = RewriteSpendingsSerializer

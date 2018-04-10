@@ -1,14 +1,14 @@
 from django.conf.urls import url
 
 from .api import (
-	CreateSpending, 
+	RewriteSpending, 
 	ListAggregatedByNameSpendings)
 
 
 urlpatterns = [
     url(r'^$',
-    	CreateSpending.as_view(),
-    	name='create-spendings'),
+    	RewriteSpending.as_view(),
+    	name='rewrite-spendings'),
     url(r'^name/$', 
     	ListAggregatedByNameSpendings.as_view(), 
     	name='spendings-aggregated-by-name'),
