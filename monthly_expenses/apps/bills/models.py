@@ -20,7 +20,8 @@ class Bill(models.Model):
     Stores image of the bill.
     Responsible for parcing the image
     """
-    # TODO: set image widthand height requirements so 
+    # TODO: set image width and height requirements so
+    # we can avoid too small and unparsable images
     image = models.ImageField(
         upload_to='media/',
         blank=False,
@@ -38,6 +39,9 @@ class Bill(models.Model):
     # Text information from bill
     # Saved as dumped json
     parsed_data = models.TextField()
+    user = models.ForeignKey(
+        'auth.User', blank=False, null=False,
+        verbose_name='Owner')
 
 
     def parse_bill(self, reparse=False):

@@ -92,6 +92,10 @@ class Spending(models.Model):
     create_time = models.DateTimeField(
         verbose_name='Speding was logged',
         auto_now_add=True)
+    user = models.ForeignKey(
+        'auth.User',
+        blank=False, null=False,
+        verbose_name='Owner')
 
     objects = SpendingsManager()
 
