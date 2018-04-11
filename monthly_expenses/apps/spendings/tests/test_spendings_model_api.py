@@ -46,8 +46,8 @@ class SpendingAggregationAPITestCase(
                     },
                     {
                         'name': 'test-2',
-                        'total_amount': 60,
-                        'total_quantity': 3,
+                        'total_amount': 30,
+                        'total_quantity': 15,
                         'bills_number': 2,
                     },
                 ])
@@ -71,11 +71,48 @@ class SpendingAggregationAPITestCase(
                     },
                     {
                         'name': 'test-2',
-                        'total_amount': 60,
-                        'total_quantity': 3,
+                        'total_amount': 30,
+                        'total_quantity': 15,
                         'bills_number': 2,
                     },
                 ])
+
+    def test_speding_aggregation__sort_by_quantity(self):
+        """
+        Python API for spending aggregation 
+        with sorting by quantity
+        """
+        aggregation = Spending.objects.get_spendings_in_time_frame(
+            self.user,
+            begin_time=datetime.datetime(2018, 4, 4),
+            sort_by='quantity')
+        self.assertListEqual(
+                list(aggregation),
+                [
+                    {
+                        'name': 'test-2',
+                        'total_amount': 30,
+                        'total_quantity': 15,
+                        'bills_number': 2,
+                    },            
+                    {
+                        'name': 'test-1',
+                        'total_amount': 70,
+                        'total_quantity': 7,
+                        'bills_number': 2,
+                    },
+                ])
+
+    def test_speding_aggregation__wrong_sort_by_error_raised(self):
+        """
+        Python API for spending aggregation 
+        raise assertyion error is unsupported sort is requested
+        """
+        with self.assertRaises(AssertionError):
+            aggregation = Spending.objects.get_spendings_in_time_frame(
+                self.user,
+                begin_time=datetime.datetime(2018, 4, 4),
+                sort_by='not-supported')
 
     def test_spendings_aggregation__filter_by_user(self):
         """
@@ -127,8 +164,8 @@ class SpendingTotalAPITestCase(
         self.assertDictEqual(
                 aggregation,
                 {
-                    'total_amount': 340.0,
-                    'total_quantity': 20,
+                    'total_amount': 310.0,
+                    'total_quantity': 32,
                     'total_bills_number': 3,
                 })
 
@@ -143,8 +180,8 @@ class SpendingTotalAPITestCase(
         self.assertDictEqual(
                 aggregation,
                 {
-                    'total_amount': 130.0,
-                    'total_quantity': 10,
+                    'total_amount': 100.0,
+                    'total_quantity': 22,
                     'total_bills_number': 2,
                 })
 

@@ -106,15 +106,15 @@ class SpendingAggregationRestAPITestCase(
                     },
                     {
                         'name': 'test-2',
-                        'total_amount': 60,
-                        'total_quantity': 3,
+                        'total_amount': 30,
+                        'total_quantity': 15,
                         'bills_number': 2,
                     },
                 ],
                 'total': {
                     'total_bills_number': 2,
-                    'total_quantity': 10,
-                    'total_amount': 130,
+                    'total_quantity': 22,
+                    'total_amount': 100,
                 }
             })
 

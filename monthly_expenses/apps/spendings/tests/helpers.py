@@ -43,15 +43,15 @@ class SpendingsTestCase(BillTestCase):
             },
             {
                 'name': 'test-2',
-                'quantity': 2,
-                'amount': 40.0,
+                'quantity': 10,
+                'amount': 20.0,
                 'date': datetime.datetime(2018, 4, 5),
                 'bill': bill_1
             },
             {
                 'name': 'test-2',
-                'quantity': 1,
-                'amount': 20.0,
+                'quantity': 5,
+                'amount': 10.0,
                 'date': datetime.datetime(2018, 4, 6),
                 'bill': bill_2
             },
