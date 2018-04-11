@@ -27,7 +27,7 @@ class SpendingAggregationAPITestCase(
         without filtering by spending date
         """
         aggregation = Spending.objects.\
-            get_spendings_in_time_frame(
+            get_expensive_spendings_in_time_frame(
                 user=self.user)
         self.assertListEqual(
                 list(aggregation),
@@ -46,8 +46,8 @@ class SpendingAggregationAPITestCase(
                     },
                     {
                         'name': 'test-2',
-                        'total_amount': 60,
-                        'total_quantity': 3,
+                        'total_amount': 30,
+                        'total_quantity': 15,
                         'bills_number': 2,
                     },
                 ])
@@ -57,7 +57,7 @@ class SpendingAggregationAPITestCase(
         Python API for spending aggregation 
         with filtering by spending date
         """
-        aggregation = Spending.objects.get_spendings_in_time_frame(
+        aggregation = Spending.objects.get_expensive_spendings_in_time_frame(
             self.user,
             begin_time=datetime.datetime(2018, 4, 4))
         self.assertListEqual(
@@ -71,8 +71,33 @@ class SpendingAggregationAPITestCase(
                     },
                     {
                         'name': 'test-2',
-                        'total_amount': 60,
-                        'total_quantity': 3,
+                        'total_amount': 30,
+                        'total_quantity': 15,
+                        'bills_number': 2,
+                    },
+                ])
+
+    def test_speding_aggregation__sort_by_quantity(self):
+        """
+        Python API for spending aggregation 
+        with sorting by quantity
+        """
+        aggregation = Spending.objects.get_popular_spendings_in_time_frame(
+            self.user,
+            begin_time=datetime.datetime(2018, 4, 4))
+        self.assertListEqual(
+                list(aggregation),
+                [
+                    {
+                        'name': 'test-2',
+                        'total_amount': 30,
+                        'total_quantity': 15,
+                        'bills_number': 2,
+                    },            
+                    {
+                        'name': 'test-1',
+                        'total_amount': 70,
+                        'total_quantity': 7,
                         'bills_number': 2,
                     },
                 ])
@@ -93,7 +118,7 @@ class SpendingAggregationAPITestCase(
             amount=10.10,
             quantity=1)
         aggregation = Spending.objects.\
-            get_spendings_in_time_frame(new_user)
+            get_expensive_spendings_in_time_frame(new_user)
         self.assertListEqual(
             list(aggregation), 
             [
@@ -104,6 +129,74 @@ class SpendingAggregationAPITestCase(
                     'bills_number': 1,
                 }
             ])
+
+
+class SpendingTotalAPITestCase(
+        SpendingsTestCase):
+    """
+    Test python api for calculation of total spendings
+    """
+
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.create_spendings()
+
+    def test_total_spendings(self):
+        """
+        Python API for total spendings calculation
+        without filtering by spending date
+        """
+        aggregation = Spending.objects.\
+            get_total_spendings_in_time_frame(
+                user=self.user)
+        self.assertDictEqual(
+                aggregation,
+                {
+                    'total_amount': 310.0,
+                    'total_quantity': 32,
+                    'total_bills_number': 3,
+                })
+
+    def test_total_spendings_with_filter_by_date(self):
+        """
+        Python API for total spendings calculation
+        with filtering by spending date
+        """
+        aggregation = Spending.objects.get_total_spendings_in_time_frame(
+            self.user,
+            begin_time=datetime.datetime(2018, 4, 4))
+        self.assertDictEqual(
+                aggregation,
+                {
+                    'total_amount': 100.0,
+                    'total_quantity': 22,
+                    'total_bills_number': 2,
+                })
+
+    def test_total_spendings__filter_by_user(self):
+        """
+        We filter out spendings that was not created by
+        passed user
+        """
+        new_user =\
+            self.get_or_create_user(
+                email='test-1@test.com')
+        new_bill = self.create_bill(user=new_user)
+        spending = Spending.objects.create(
+            date=datetime.date(2018, 6, 6),
+            bill=new_bill,
+            name='new-test-1',
+            amount=10.10,
+            quantity=1)
+        aggregation = Spending.objects.\
+            get_total_spendings_in_time_frame(new_user)
+        self.assertDictEqual(
+            aggregation, 
+            {
+                'total_amount': 10.1,
+                'total_quantity': 1,
+                'total_bills_number': 1,
+            })
 
 
 class RewriteSpendingsAPITestCase(

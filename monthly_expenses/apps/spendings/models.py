@@ -16,15 +16,35 @@ class SpendingsManager(models.Manager):
     Spendings aggregation logic
     """
 
+    def get_expensive_spendings_in_time_frame(
+            self, *args, **kwargs):
+        """
+        Return aggrergated spndings by item in given time frame
+        sorted by total amount
+        """
+        return \
+            self.get_spendings_in_time_frame(*args, **kwargs).\
+                 order_by('-total_amount')
+
+    def get_popular_spendings_in_time_frame(
+            self, *args, **kwargs):
+        """
+        Return aggrergated spndings by item in given time frame
+        sorted by total quantity
+        """
+        return \
+            self.get_spendings_in_time_frame(*args, **kwargs).\
+                 order_by('-total_quantity')
+   
     def get_spendings_in_time_frame(
             self, user, 
             begin_time=None, end_time=None):
         """
-        Aggregates spendings by date and item
+        Aggregates spendings by item
         Returns sorted list of items with their quanuity and total amount
         in given time frame.time
         End time is not included.
-        Returns annotated QuerySet
+        Returns annotated QuerySet.
         """
         qs = self.filter(bill__user=user)
         if begin_time:
@@ -33,10 +53,38 @@ class SpendingsManager(models.Manager):
             qs = qs.filter(date__lt=end_time)
         return qs.values('name').\
                annotate(
-                   bills_number = models.Count('bill', distinct=True),
+                   bills_number=models.Count('bill', distinct=True),
                    total_quantity=models.Sum('quantity'),
-                   total_amount=models.Sum('amount')).\
-               order_by('-total_amount')
+                   total_amount=models.Sum('amount'))
+
+    def get_total_spendings_in_time_frame(
+            self, user,
+            begin_time=None, end_time=None):
+        """
+        Aggregate spendings in a timeframe
+        Returns dictionary with format
+        {
+            'total_bills_number': [total_bills_number int],
+            'total_quantity': [total spendings quantity int],
+            'total_amunt': [total spendings amount int],
+        }
+        """
+        qs = self.filter(bill__user=user)
+        if begin_time:
+            qs = qs.filter(date__gte=begin_time)
+        if end_time:
+            qs = qs.filter(date__lt=end_time)
+        result = qs.aggregate(
+            total_bills_number=models.Count('bill', distinct=True),
+            total_quantity=models.Sum('quantity'),
+            total_amount=models.Sum('amount'))
+        # return 0 instead of None for aggregated data
+        for key in [
+                'total_amount',
+                'total_bills_number',
+                'total_quantity']:
+            result[key] = result[key] or 0
+        return result
 
     @transaction.atomic
     def rewrite_spendings_for_bill(

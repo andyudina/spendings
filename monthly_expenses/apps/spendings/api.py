@@ -1,6 +1,8 @@
 """
 Rest API to display aggregated spendings
 """
+from collections import namedtuple
+
 from rest_framework import (
     serializers, 
     generics, permissions)
@@ -8,6 +10,21 @@ from rest_framework import (
 from apps.bills.models import Bill
 from apps.users.permissions import IsBillOwner
 from .models import Spending
+
+
+## Spendings aggregation APIS
+
+
+class DatesSerializer(
+        serializers.Serializer):
+    """
+    Validate that passed dates are in right format
+    Accepts None values or valid dates
+    """
+    begin_time = serializers.DateField(
+        required=False)
+    end_time = serializers.DateField(
+        required=False)
 
 
 class AggregatedByNameSpendingSerializer(
@@ -21,22 +38,102 @@ class AggregatedByNameSpendingSerializer(
     total_amount = serializers.FloatField(required=True)
 
 
+class TotalSpendingsSerializer(
+        serializers.Serializer):
+    """
+    Read only serializer for total spendings
+    """
+    total_bills_number = serializers.IntegerField(required=True)
+    total_quantity = serializers.IntegerField(required=True)
+    total_amount = serializers.FloatField(required=True)
 
-class ListAggregatedByNameSpendings(
-        generics.ListAPIView):
+
+class AggregatedSpendingsInTimeFrame(
+        serializers.Serializer):
     """
-    List aggregated by name spendings in given timeframe
+    Read only serializer for aggregated spendings in time frame
+    and their total amounts and quantity
     """
-    serializer_class = AggregatedByNameSpendingSerializer
+    spendings = AggregatedByNameSpendingSerializer(
+        many=True)
+    total = TotalSpendingsSerializer()
+
+
+class BaseSpendingsAggregationView(
+        generics.GenericAPIView):
+    """
+    Base class for displaying spendings aggregation
+    """
     permission_classes = (
         permissions.IsAuthenticated, )
 
+    def get(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+        self._validate_dates_format(request.GET)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset)
+        return Response(serializer.data)
+
+    def _validate_dates_format(self, query):
+        """
+        Validate if passed dates can be recognized
+        """
+        dates_serializer = DatesSerializer(data=query)
+        dates_serializer.is_valid(
+            raise_exception=True)
+
+
+class ListMostExpensiveSpendings(
+        BaseSpendingsAggregationView):
+    """
+    List aggregated by name spendings in given timeframe
+    sorted by total amount
+    """
+    serializer_class = AggregatedSpendingsInTimeFrame
+
     def get_queryset(self):
-        # TODO: validate begin_time and end_time 
-        return Spending.objects.get_spendings_in_time_frame(
-            self.request.user,
-            begin_time=self.request.GET.get('begin_time', None),
-            end_time=self.request.GET.get('end_time', None))
+        AggregatedSpendings = namedtuple(
+            'AggregatedSpendings',
+            ['spendings', 'total'])
+        return AggregatedSpendings(
+            spendings=Spending.objects.get_expensive_spendings_in_time_frame(
+                self.request.user,
+                begin_time=self.request.GET.get('begin_time', None),
+                end_time=self.request.GET.get('end_time', None)),
+            total=Spending.objects.get_total_spendings_in_time_frame(
+                self.request.user,
+                begin_time=self.request.GET.get('begin_time', None),
+                end_time=self.request.GET.get('end_time', None)))
+
+
+class AggregatedSpendingsWithoutTotal(
+        serializers.Serializer):
+    """
+    Read only serializer for aggregated spendings in time frame
+    """
+    spendings = AggregatedByNameSpendingSerializer(
+        many=True)
+
+
+class ListMostPopularSpendings(
+        BaseSpendingsAggregationView):
+    """
+    List aggregated by name spendings in given timeframe
+    sorted by total quantity
+    """
+    serializer_class = AggregatedSpendingsWithoutTotal
+
+    def get_queryset(self):
+        AggregatedSpendings = namedtuple(
+            'AggregatedSpendings', ['spendings',])
+        return AggregatedSpendings(
+            spendings=Spending.objects.get_popular_spendings_in_time_frame(
+                self.request.user,
+                begin_time=self.request.GET.get('begin_time', None),
+                end_time=self.request.GET.get('end_time', None)))
+
+
+## Spendings modification API
 
 
 class ItemSerializer(
