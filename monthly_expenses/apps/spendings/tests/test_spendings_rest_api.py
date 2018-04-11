@@ -37,14 +37,24 @@ class SpendingAggregationRestAPITestCase(
             reverse('spendings-aggregated-by-name'),
             get_request)
 
-    def test_aggregated_by_name_spendings__ok_response_returned(self):
+    def test_aggregated_by_name_spendings__no_date_ok_response_returned(self):
         """
-        We return 200 OK response on valid request
+        We return 200 OK response on valid request without dates
         """
         response = self.get_aggregated_by_name_spendings()
         self.assertEqual(
             response.status_code,
             status.HTTP_200_OK)
+
+    def test_pass_wrong_date__bad_request_response_returned(self):
+        """
+        We return 400 bad request response if date can nit be parsed
+        """
+        response = self.get_aggregated_by_name_spendings(
+            begin_time='not-a-datetime')
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
 
     def test_user_not_login__403_response_returned(self):
         """

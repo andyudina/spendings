@@ -12,6 +12,18 @@ from apps.users.permissions import IsBillOwner
 from .models import Spending
 
 
+class DatesSerializer(
+        serializers.Serializer):
+    """
+    Validate that passed dates are in right format
+    Accepts None values or valid dates
+    """
+    begin_time = serializers.DateField(
+        required=False)
+    end_time = serializers.DateField(
+        required=False)
+
+
 class AggregatedByNameSpendingSerializer(
         serializers.Serializer):
     """
@@ -53,7 +65,8 @@ class ListAggregatedByNameSpendings(
         permissions.IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):
-        from rest_framework.response import Response     
+        from rest_framework.response import Response
+        self._validate_dates_format(request.GET)
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset)
         return Response(serializer.data)
@@ -72,6 +85,14 @@ class ListAggregatedByNameSpendings(
                 self.request.user,
                 begin_time=self.request.GET.get('begin_time', None),
                 end_time=self.request.GET.get('end_time', None)))
+
+    def _validate_dates_format(self, query):
+        """
+        Validate if passed dates can be recognized
+        """
+        dates_serializer = DatesSerializer(data=query)
+        dates_serializer.is_valid(
+            raise_exception=True)
 
 
 class ItemSerializer(
