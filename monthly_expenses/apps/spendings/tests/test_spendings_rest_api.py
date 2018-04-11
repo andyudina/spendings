@@ -68,8 +68,15 @@ class SpendingAggregationRestAPITestCase(
         # retrieve spendings for new_user
         response = self.get_aggregated_by_name_spendings(
             user=new_user)
-        self.assertEqual(
-            response.data, [])       
+        self.assertDictEqual(
+            response.data, {
+                'total': {
+                    'total_bills_number': 0,
+                    'total_quantity': 0,
+                    'total_amount': 0,
+                },
+                'spendings': []
+            })       
 
     def test_aggregated_by_name_spendings__aggregated_spendings_returned(self):   
         """
@@ -77,9 +84,10 @@ class SpendingAggregationRestAPITestCase(
         """
         response = self.get_aggregated_by_name_spendings(
             begin_time=datetime.date(2018, 4, 4))
-        self.assertEqual(
+        self.assertDictEqual(
             response.data,
-            [
+            {
+                'spendings': [
                     {
                         'name': 'test-1',
                         'total_amount': 70,
@@ -92,7 +100,13 @@ class SpendingAggregationRestAPITestCase(
                         'total_quantity': 3,
                         'bills_number': 2,
                     },
-            ])
+                ],
+                'total': {
+                    'total_bills_number': 2,
+                    'total_quantity': 10,
+                    'total_amount': 130,
+                }
+            })
 
 
 class RewriteSpendinRestAPITestCase(

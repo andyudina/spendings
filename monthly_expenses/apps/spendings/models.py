@@ -55,10 +55,17 @@ class SpendingsManager(models.Manager):
             qs = qs.filter(date__gte=begin_time)
         if end_time:
             qs = qs.filter(date__lt=end_time)
-        return qs.aggregate(
+        result = qs.aggregate(
             total_bills_number=models.Count('bill', distinct=True),
             total_quantity=models.Sum('quantity'),
             total_amount=models.Sum('amount'))
+        # return 0 instead of None for aggregated data
+        for key in [
+                'total_amount',
+                'total_bills_number',
+                'total_quantity']:
+            result[key] = result[key] or 0
+        return result
 
     @transaction.atomic
     def rewrite_spendings_for_bill(

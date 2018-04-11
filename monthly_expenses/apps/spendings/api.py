@@ -1,6 +1,8 @@
 """
 Rest API to display aggregated spendings
 """
+from collections import namedtuple
+
 from rest_framework import (
     serializers, 
     generics, permissions)
@@ -21,22 +23,55 @@ class AggregatedByNameSpendingSerializer(
     total_amount = serializers.FloatField(required=True)
 
 
+class TotalSpendingsSerializer(
+        serializers.Serializer):
+    """
+    Read only serializer for total spendings
+    """
+    total_bills_number = serializers.IntegerField(required=True)
+    total_quantity = serializers.IntegerField(required=True)
+    total_amount = serializers.FloatField(required=True)
+
+
+class AggregatedSpendingsInTimeFrame(
+        serializers.Serializer):
+    """
+    Read only serializer for aggregated spendings in time frame
+    """
+    spendings = AggregatedByNameSpendingSerializer(
+        many=True)
+    total = TotalSpendingsSerializer()
+
 
 class ListAggregatedByNameSpendings(
-        generics.ListAPIView):
+        generics.GenericAPIView):
     """
     List aggregated by name spendings in given timeframe
     """
-    serializer_class = AggregatedByNameSpendingSerializer
+    serializer_class = AggregatedSpendingsInTimeFrame
     permission_classes = (
         permissions.IsAuthenticated, )
 
+    def get(self, request, *args, **kwargs):
+        from rest_framework.response import Response     
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset)
+        return Response(serializer.data)
+
     def get_queryset(self):
-        # TODO: validate begin_time and end_time 
-        return Spending.objects.get_spendings_in_time_frame(
-            self.request.user,
-            begin_time=self.request.GET.get('begin_time', None),
-            end_time=self.request.GET.get('end_time', None))
+        # TODO: validate begin_time and end_time
+        AggregatedSpendings = namedtuple(
+            'AggregatedSpendings',
+            ['spendings', 'total'])
+        return AggregatedSpendings(
+            spendings=Spending.objects.get_spendings_in_time_frame(
+                self.request.user,
+                begin_time=self.request.GET.get('begin_time', None),
+                end_time=self.request.GET.get('end_time', None)),
+            total=Spending.objects.get_total_spendings_in_time_frame(
+                self.request.user,
+                begin_time=self.request.GET.get('begin_time', None),
+                end_time=self.request.GET.get('end_time', None)))
 
 
 class ItemSerializer(
