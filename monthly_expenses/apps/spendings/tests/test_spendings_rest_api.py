@@ -12,10 +12,11 @@ from apps.spendings.models import Spending
 from .helpers import SpendingsTestCase
 
 
-class SpendingAggregationRestAPITestCase(
+class SpendingAggregationAPIBaseTestCase(
         SpendingsTestCase):
     """
-    Test rest api for spendings aggregation
+    Base test case class for testing
+    rest api aggregations
     """
 
     def setUp(self):
@@ -34,8 +35,98 @@ class SpendingAggregationRestAPITestCase(
         if need_auth:
             self.client.force_login(user or self.user)
         return self.client.get(
-            reverse('spendings-aggregated-by-name'),
+            reverse(
+                self.API_URL),
             get_request)
+
+
+class PopularSpendingsAPITestCase(
+        SpendingAggregationAPIBaseTestCase):
+    """
+    Test rest api for aggregating spendings
+    and listing most popular ones
+    """
+    API_URL = 'spendings-aggregated-by-name-sorted-by-quantity'
+
+    def test_aggregated_by_name_spendings__no_date_ok_response_returned(self):
+        """
+        We return 200 OK response on valid request without dates
+        """
+        response = self.get_aggregated_by_name_spendings()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_pass_wrong_date__bad_request_response_returned(self):
+        """
+        We return 400 bad request response if date can nit be parsed
+        """
+        response = self.get_aggregated_by_name_spendings(
+            begin_time='not-a-datetime')
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_user_not_login__403_response_returned(self):
+        """
+        We return 403 forbidden response if user is not logined
+        """
+        response = self.get_aggregated_by_name_spendings(
+            need_auth=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_not_user_spendings_are_filtered_out(self):
+        """
+        We do not include spendings from other users
+        to result set
+        """
+        new_user =\
+            self.get_or_create_user(
+                email='test-1@test.com')
+        new_bill = self.create_bill(user=new_user)
+        # retrieve spendings for new_user
+        response = self.get_aggregated_by_name_spendings(
+            user=new_user)
+        self.assertDictEqual(
+            response.data, {
+                'spendings': []
+            })       
+
+    def test_aggregated_by_name_spendings__aggregated_spendings_returned(self):   
+        """
+        We return aggregated by name spendinsg in given time frame
+        """
+        response = self.get_aggregated_by_name_spendings(
+            begin_time=datetime.date(2018, 4, 4))
+        self.assertDictEqual(
+            response.data,
+            {
+                'spendings': [
+                    {
+                        'name': 'test-2',
+                        'total_amount': 30,
+                        'total_quantity': 15,
+                        'bills_number': 2,
+                    },
+                    {
+                        'name': 'test-1',
+                        'total_amount': 70,
+                        'total_quantity': 7,
+                        'bills_number': 2,
+                    },
+                ],
+            })
+
+
+class ExpensiveSpendingsAPITestCase(
+        SpendingAggregationAPIBaseTestCase):
+    """
+    Test rest api for aggregating spendings
+    and listing most expensive ones
+    """
+    API_URL = 'spendings-aggregated-by-name-sorted-by-amount'
 
     def test_aggregated_by_name_spendings__no_date_ok_response_returned(self):
         """

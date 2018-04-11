@@ -12,6 +12,9 @@ from apps.users.permissions import IsBillOwner
 from .models import Spending
 
 
+## Spendings aggregation APIS
+
+
 class DatesSerializer(
         serializers.Serializer):
     """
@@ -49,18 +52,18 @@ class AggregatedSpendingsInTimeFrame(
         serializers.Serializer):
     """
     Read only serializer for aggregated spendings in time frame
+    and their total amounts and quantity
     """
     spendings = AggregatedByNameSpendingSerializer(
         many=True)
     total = TotalSpendingsSerializer()
 
 
-class ListAggregatedByNameSpendings(
+class BaseSpendingsAggregationView(
         generics.GenericAPIView):
     """
-    List aggregated by name spendings in given timeframe
+    Base class for displaying spendings aggregation
     """
-    serializer_class = AggregatedSpendingsInTimeFrame
     permission_classes = (
         permissions.IsAuthenticated, )
 
@@ -71,13 +74,29 @@ class ListAggregatedByNameSpendings(
         serializer = self.get_serializer(queryset)
         return Response(serializer.data)
 
+    def _validate_dates_format(self, query):
+        """
+        Validate if passed dates can be recognized
+        """
+        dates_serializer = DatesSerializer(data=query)
+        dates_serializer.is_valid(
+            raise_exception=True)
+
+
+class ListMostExpensiveSpendings(
+        BaseSpendingsAggregationView):
+    """
+    List aggregated by name spendings in given timeframe
+    sorted by total amount
+    """
+    serializer_class = AggregatedSpendingsInTimeFrame
+
     def get_queryset(self):
-        # TODO: validate begin_time and end_time
         AggregatedSpendings = namedtuple(
             'AggregatedSpendings',
             ['spendings', 'total'])
         return AggregatedSpendings(
-            spendings=Spending.objects.get_spendings_in_time_frame(
+            spendings=Spending.objects.get_expensive_spendings_in_time_frame(
                 self.request.user,
                 begin_time=self.request.GET.get('begin_time', None),
                 end_time=self.request.GET.get('end_time', None)),
@@ -86,13 +105,35 @@ class ListAggregatedByNameSpendings(
                 begin_time=self.request.GET.get('begin_time', None),
                 end_time=self.request.GET.get('end_time', None)))
 
-    def _validate_dates_format(self, query):
-        """
-        Validate if passed dates can be recognized
-        """
-        dates_serializer = DatesSerializer(data=query)
-        dates_serializer.is_valid(
-            raise_exception=True)
+
+class AggregatedSpendingsWithoutTotal(
+        serializers.Serializer):
+    """
+    Read only serializer for aggregated spendings in time frame
+    """
+    spendings = AggregatedByNameSpendingSerializer(
+        many=True)
+
+
+class ListMostPopularSpendings(
+        BaseSpendingsAggregationView):
+    """
+    List aggregated by name spendings in given timeframe
+    sorted by total quantity
+    """
+    serializer_class = AggregatedSpendingsWithoutTotal
+
+    def get_queryset(self):
+        AggregatedSpendings = namedtuple(
+            'AggregatedSpendings', ['spendings',])
+        return AggregatedSpendings(
+            spendings=Spending.objects.get_popular_spendings_in_time_frame(
+                self.request.user,
+                begin_time=self.request.GET.get('begin_time', None),
+                end_time=self.request.GET.get('end_time', None)))
+
+
+## Spendings modification API
 
 
 class ItemSerializer(
