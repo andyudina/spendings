@@ -15,38 +15,47 @@ class SpendingsManager(models.Manager):
     """
     Spendings aggregation logic
     """
-    ACCEPTABLE_SORTS = [
-        'amount',
-        'quantity'
-    ]
 
+    def get_expensive_spendings_in_time_frame(
+            self, *args, **kwargs):
+        """
+        Return aggrergated spndings by item in given time frame
+        sorted by total amount
+        """
+        return \
+            self.get_spendings_in_time_frame(*args, **kwargs).\
+                 order_by('-total_amount')
+
+    def get_popular_spendings_in_time_frame(
+            self, *args, **kwargs):
+        """
+        Return aggrergated spndings by item in given time frame
+        sorted by total quantity
+        """
+        return \
+            self.get_spendings_in_time_frame(*args, **kwargs).\
+                 order_by('-total_quantity')
+   
     def get_spendings_in_time_frame(
             self, user, 
-            begin_time=None, end_time=None,
-            sort_by=None):
+            begin_time=None, end_time=None):
         """
         Aggregates spendings by item
         Returns sorted list of items with their quanuity and total amount
         in given time frame.time
         End time is not included.
         Returns annotated QuerySet.
-        Accepts sorting by amount or quantity
         """
-        assert sort_by is None or sort_by in self.ACCEPTABLE_SORTS, \
-            'Can sort only by one of %s' % self.ACCEPTABLE_SORTS
-
         qs = self.filter(bill__user=user)
         if begin_time:
             qs = qs.filter(date__gte=begin_time)
         if end_time:
             qs = qs.filter(date__lt=end_time)
-        qs = qs.values('name').\
+        return qs.values('name').\
                annotate(
                    bills_number=models.Count('bill', distinct=True),
                    total_quantity=models.Sum('quantity'),
                    total_amount=models.Sum('amount'))
-        sort_by = sort_by or 'amount'
-        return qs.order_by('-total_%s' % sort_by)
 
     def get_total_spendings_in_time_frame(
             self, user,

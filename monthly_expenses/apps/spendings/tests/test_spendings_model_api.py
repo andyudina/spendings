@@ -27,7 +27,7 @@ class SpendingAggregationAPITestCase(
         without filtering by spending date
         """
         aggregation = Spending.objects.\
-            get_spendings_in_time_frame(
+            get_expensive_spendings_in_time_frame(
                 user=self.user)
         self.assertListEqual(
                 list(aggregation),
@@ -57,7 +57,7 @@ class SpendingAggregationAPITestCase(
         Python API for spending aggregation 
         with filtering by spending date
         """
-        aggregation = Spending.objects.get_spendings_in_time_frame(
+        aggregation = Spending.objects.get_expensive_spendings_in_time_frame(
             self.user,
             begin_time=datetime.datetime(2018, 4, 4))
         self.assertListEqual(
@@ -82,10 +82,9 @@ class SpendingAggregationAPITestCase(
         Python API for spending aggregation 
         with sorting by quantity
         """
-        aggregation = Spending.objects.get_spendings_in_time_frame(
+        aggregation = Spending.objects.get_popular_spendings_in_time_frame(
             self.user,
-            begin_time=datetime.datetime(2018, 4, 4),
-            sort_by='quantity')
+            begin_time=datetime.datetime(2018, 4, 4))
         self.assertListEqual(
                 list(aggregation),
                 [
@@ -103,17 +102,6 @@ class SpendingAggregationAPITestCase(
                     },
                 ])
 
-    def test_speding_aggregation__wrong_sort_by_error_raised(self):
-        """
-        Python API for spending aggregation 
-        raise assertyion error is unsupported sort is requested
-        """
-        with self.assertRaises(AssertionError):
-            aggregation = Spending.objects.get_spendings_in_time_frame(
-                self.user,
-                begin_time=datetime.datetime(2018, 4, 4),
-                sort_by='not-supported')
-
     def test_spendings_aggregation__filter_by_user(self):
         """
         We filter out spendings that was not created by
@@ -130,7 +118,7 @@ class SpendingAggregationAPITestCase(
             amount=10.10,
             quantity=1)
         aggregation = Spending.objects.\
-            get_spendings_in_time_frame(new_user)
+            get_expensive_spendings_in_time_frame(new_user)
         self.assertListEqual(
             list(aggregation), 
             [
