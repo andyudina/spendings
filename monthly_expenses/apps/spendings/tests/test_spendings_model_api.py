@@ -106,6 +106,74 @@ class SpendingAggregationAPITestCase(
             ])
 
 
+class SpendingTotalAPITestCase(
+        SpendingsTestCase):
+    """
+    Test python api for calculation of total spendings
+    """
+
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.create_spendings()
+
+    def test_total_spendings(self):
+        """
+        Python API for total spendings calculation
+        without filtering by spending date
+        """
+        aggregation = Spending.objects.\
+            get_total_spendings_in_time_frame(
+                user=self.user)
+        self.assertDictEqual(
+                aggregation,
+                {
+                    'total_amount': 340.0,
+                    'total_quantity': 20,
+                    'total_bills_number': 3,
+                })
+
+    def test_total_spendings_with_filter_by_date(self):
+        """
+        Python API for total spendings calculation
+        with filtering by spending date
+        """
+        aggregation = Spending.objects.get_total_spendings_in_time_frame(
+            self.user,
+            begin_time=datetime.datetime(2018, 4, 4))
+        self.assertDictEqual(
+                aggregation,
+                {
+                    'total_amount': 130.0,
+                    'total_quantity': 10,
+                    'total_bills_number': 2,
+                })
+
+    def test_total_spendings__filter_by_user(self):
+        """
+        We filter out spendings that was not created by
+        passed user
+        """
+        new_user =\
+            self.get_or_create_user(
+                email='test-1@test.com')
+        new_bill = self.create_bill(user=new_user)
+        spending = Spending.objects.create(
+            date=datetime.date(2018, 6, 6),
+            bill=new_bill,
+            name='new-test-1',
+            amount=10.10,
+            quantity=1)
+        aggregation = Spending.objects.\
+            get_total_spendings_in_time_frame(new_user)
+        self.assertDictEqual(
+            aggregation, 
+            {
+                'total_amount': 10.1,
+                'total_quantity': 1,
+                'total_bills_number': 1,
+            })
+
+
 class RewriteSpendingsAPITestCase(
         SpendingsTestCase):
     """

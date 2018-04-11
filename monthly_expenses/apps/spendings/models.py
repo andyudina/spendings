@@ -20,7 +20,7 @@ class SpendingsManager(models.Manager):
             self, user, 
             begin_time=None, end_time=None):
         """
-        Aggregates spendings by date and item
+        Aggregates spendings by item
         Returns sorted list of items with their quanuity and total amount
         in given time frame.time
         End time is not included.
@@ -33,10 +33,32 @@ class SpendingsManager(models.Manager):
             qs = qs.filter(date__lt=end_time)
         return qs.values('name').\
                annotate(
-                   bills_number = models.Count('bill', distinct=True),
+                   bills_number=models.Count('bill', distinct=True),
                    total_quantity=models.Sum('quantity'),
                    total_amount=models.Sum('amount')).\
                order_by('-total_amount')
+
+    def get_total_spendings_in_time_frame(
+            self, user,
+            begin_time=None, end_time=None):
+        """
+        Aggregate spendings in a timeframe
+        Returns dictionary with format
+        {
+            'total_bills_number': [total_bills_number int],
+            'total_quantity': [total spendings quantity int],
+            'total_amunt': [total spendings amount int],
+        }
+        """
+        qs = self.filter(bill__user=user)
+        if begin_time:
+            qs = qs.filter(date__gte=begin_time)
+        if end_time:
+            qs = qs.filter(date__lt=end_time)
+        return qs.aggregate(
+            total_bills_number=models.Count('bill', distinct=True),
+            total_quantity=models.Sum('quantity'),
+            total_amount=models.Sum('amount'))
 
     @transaction.atomic
     def rewrite_spendings_for_bill(
