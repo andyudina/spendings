@@ -13,6 +13,7 @@ CurrencyConverter==0.13.2
 cycler==0.10.0
 decorator==4.2.1
 Django==1.11.11
+django-environ==0.4.4
 django-rest-framework==0.1.0
 djangorestframework==3.7.7
 entrypoints==0.2.2
@@ -48,6 +49,7 @@ pickleshare==0.7.2
 plotly==2.0.15
 prompt-toolkit==1.0.3
 protobuf==3.5.1
+psycopg2==2.7.4
 ptyprocess==0.5.1
 pyenchant==1.6.11
 Pygments==2.1.3
