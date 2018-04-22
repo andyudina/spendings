@@ -23,7 +23,8 @@ BASE_DIR = os.path.dirname(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '167.99.43.177', ]
 
 
 # Application definition
