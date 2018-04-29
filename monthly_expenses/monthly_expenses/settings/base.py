@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'monthly_expenses.middleware.cors.CORSMiddleware',
 ]
 
 ROOT_URLCONF = 'monthly_expenses.urls'
