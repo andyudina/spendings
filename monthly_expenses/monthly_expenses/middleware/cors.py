@@ -20,4 +20,6 @@ class CORSMiddleware(object):
             response['Access-Control-Allow-Credentials'] = 'true'
             response['Access-Control-Allow-Methods'] = \
                 'GET,POST,OPTIONS,PUT,DELETE,PATCH'
+            response['Access-Control-Allow-Headers'] = \
+                'Origin,Content-Type,Accept,Cookie'
         return response
