@@ -16,7 +16,7 @@ class CORSMiddleware(object):
     def __call__(self, request):
         response = self.get_response(request)
         if settings.DEBUG:
-            response['Access-Control-Allow-Origin'] = "*"
+            response['Access-Control-Allow-Origin'] = "http://localhost:3000"
             response['Access-Control-Allow-Credentials'] = 'true'
             response['Access-Control-Allow-Methods'] = \
                 'GET,POST,OPTIONS,PUT,DELETE,PATCH'
