@@ -3,6 +3,7 @@ User management api
 """
 from django.contrib.auth import (
     authenticate, login)
+from django.http import Http404
 from rest_framework import (
     serializers, 
     generics)
@@ -103,3 +104,32 @@ class LoginUser(
     Login user using email and password
     """
     serializer_class = UserLoginSerializer
+
+
+class UserSerializer(
+        serializers.ModelSerializer):
+    """
+    Read only user serialzer
+    """
+    class Meta:
+        model = User
+        fields = ('email', )    
+
+
+class CurrentUser(
+        generics.RetrieveAPIView):
+    """
+    Retrieve user info if user is logged in
+    Returns user info if user is logged in
+    or raises 404
+    """
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        """
+        Returns current user or raises 404
+        """
+        if self.request.user.is_authenticated():
+            return self.request.user
+        raise Http404
+

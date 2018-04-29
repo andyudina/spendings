@@ -149,3 +149,53 @@ class LoginUserAPITest(TestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_400_BAD_REQUEST)
+
+
+class GetCurrentUserAPITest(TestCase):
+    """
+    Test api to retrieve current user
+    """
+    def setUp(self):
+        self.user = self.create_user()
+
+    def create_user(self):
+        email = 'test@test.com'
+        password = '#'
+        return User.objects.create_user(
+            email, email, password)
+
+    def get_user(
+            self, is_logged_in=True):
+        if is_logged_in:
+            self.client.force_login(self.user)
+        return self.client.get(
+            reverse('current-user'))
+
+    def test_user_logged_in__successful_response_returned(self):
+        """
+        We return successful response if user logged in
+        """
+        response = self.get_user()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_user_logged_in__user_email_returned(self):
+        """
+        We return successful response if user logged in
+        """
+        response = self.get_user()
+        self.assertEqual(
+            response.data,
+            {
+                'email': 'test@test.com'
+            })
+
+    def test_user_not_logged_in__404_returned(self):
+        """
+        We raise 404 if user is not logged in
+        """
+        response = self.get_user(is_logged_in=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND)
