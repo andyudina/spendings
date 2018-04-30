@@ -146,3 +146,10 @@ LOGGING = {
 
 # only one parser is supported - for finnish checks
 PARSER = 'fi_parser'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'monthly_expenses.authentication.no_csrf.CsrfExemptSessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication'
+    ),
+}
