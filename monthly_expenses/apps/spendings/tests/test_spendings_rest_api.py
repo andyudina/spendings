@@ -270,6 +270,17 @@ class RewriteSpendinRestAPITestCase(
                 quantity=2,
                 amount=20.20).exists())
 
+    def test_successfully_rewrite_spendings__bill_date_changed(self):
+        """
+        We successfully update bill purchase date
+        when reqrite spendings
+        """
+        self.rewrite_spendings_for_bill()
+        self.bill.refresh_from_db()
+        self.assertEqual(
+            self.bill.date,
+            datetime.date(2018, 6, 5))
+
     def test_unknown_date_format__bad_request_returned(self):
         """
         We return 400 response if date was passed in wrong format

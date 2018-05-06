@@ -46,7 +46,6 @@ class BillPythonAPITestCase(BillTestCase):
     Test domain logic for Bill model
     """
 
-
     def test_create_bill__hash_saved(self):
         """
         We save sha256 for bill image on creation

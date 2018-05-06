@@ -39,6 +39,8 @@ class Bill(models.Model):
     # Text information from bill
     # Saved as dumped json
     parsed_data = models.TextField()
+    # Purchase date on the bill
+    date = models.DateField(null=True, blank=True)
     user = models.ForeignKey(
         'auth.User', blank=False, null=False,
         verbose_name='Owner')
