@@ -56,7 +56,11 @@ class Bill(models.Model):
         import json
         if not reparse and self.parsed_data:
             return json.loads(self.parsed_data)
-        bill_text = self._get_text_from_image()
+        try:
+            bill_text = self._get_text_from_image()
+        except IOError:
+            logger.exception('File not found')
+            raise ValueError('File not found')
         parsed_data = \
             parser.get_datetime_and_spendings_from_bill(bill_text)
         self.parsed_data = json.dumps(parsed_data)

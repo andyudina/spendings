@@ -88,3 +88,17 @@ class BillPythonAPITestCase(BillTestCase):
                         "quantity": 1
                     }
                 ]})
+
+    @patch(
+        'apps.bills.models.Image.open')
+    def test_parse_bill__io_error_rerased_as_value_error(
+            self, 
+            open_mock):
+        """
+        We reraise IOError as value error
+        """
+        open_mock.side_effect = IOError('not found')
+
+        bill = self.create_bill()
+        with self.assertRaises(ValueError):
+            bill.parse_bill()
