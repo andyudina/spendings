@@ -194,9 +194,9 @@ class ListSpendingsSerializer(
     Read only serilaizer to list spendings for the bill
     """
     # bill purchase date
-    date = serializers.DateTimeField(
+    date = serializers.DateField(
         required=False,
-        format='%Y-%m-%d %H:%M:%S')
+        format='%Y-%m-%d')
     items = ItemSerializer(
         required=True,
         many=True)

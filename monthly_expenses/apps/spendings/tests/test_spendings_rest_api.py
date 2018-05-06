@@ -398,7 +398,7 @@ class ListSpendinRestAPITestCase(
         self.assertDictEqual(
             response.data['spendings_saved'],
             {
-              'date': '2018-06-05 00:00:00',
+              'date': '2018-06-05',
               'items': [
                 {
                   'name': 'test-1',
@@ -420,7 +420,7 @@ class ListSpendinRestAPITestCase(
         Successfully list parsed spendings
         """
         parse_bill_mock.return_value = {
-            'date': '2018-06-05 00:00:00',
+            'date': '2018-06-05',
             'items': [
                 {
                   'name': 'test-1',
@@ -434,7 +434,7 @@ class ListSpendinRestAPITestCase(
         self.assertDictEqual(
             response.data['spendings_parsed'],
             {
-              'date': '2018-06-05 00:00:00',
+              'date': '2018-06-05',
               'parse_error': None,
               'items': [
                 {
