@@ -31,7 +31,7 @@ class FIParser(BaseParser):
         to construct the item
         If item is found, line information should be in format:
         {
-            'item': 'item-name [string]',
+            'name': 'item-name [string]',
             'quantity': 'item-quantity [int]',
             'amount': 'item-amount [float]'    
         }
@@ -84,7 +84,7 @@ class FIParser(BaseParser):
             amount == second_line_amount or \
             quantity == second_line_quantity
         item = {
-            'item': name,
+            'name': name,
             'amount': amount,
             'quantity': quantity
         }
@@ -109,7 +109,7 @@ class FIParser(BaseParser):
                 'Can not parse line %s' % line)
             return None
         return {
-            'item': name,
+            'name': name,
             'amount': amount,
             'quantity': quantity
         }

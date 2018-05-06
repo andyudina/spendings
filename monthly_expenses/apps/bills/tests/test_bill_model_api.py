@@ -84,7 +84,7 @@ class BillPythonAPITestCase(BillTestCase):
                 "date": "2017-07-04 00:00:00", 
                 "items": [
                     {
-                        "item": "HAIR DRYER", 
+                        "name": "HAIR DRYER", 
                         "amount": 79.99, 
                         "quantity": 1
                     }

@@ -8,7 +8,7 @@ def aggregate_spendings_by_name(items):
     """
     result = {}
     for item in items:
-        name = item['item'].lower()
+        name = item['name'].lower()
         result[name] = result.get(
             name, 
             {

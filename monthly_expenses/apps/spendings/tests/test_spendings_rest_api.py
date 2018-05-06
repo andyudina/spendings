@@ -222,7 +222,7 @@ class RewriteSpendinRestAPITestCase(
         self.bill = self.create_bill()
         self.items = [
             {
-                'item': 'test-1',
+                'name': 'test-1',
                 'quantity': 2,
                 'amount': 20.20
             },

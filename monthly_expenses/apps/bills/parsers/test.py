@@ -62,7 +62,7 @@ class TestParser(BaseParser):
         if amount is None:
             raise ValueError('Amount not found for item')
         return {
-            'item': item,
+            'name': item,
             'quantity': quantity,
             'amount': amount
         }

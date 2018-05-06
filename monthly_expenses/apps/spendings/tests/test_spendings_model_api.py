@@ -213,12 +213,12 @@ class RewriteSpendingsAPITestCase(
         """
         items = [
             {
-                'item': 'test-1',
+                'name': 'test-1',
                 'quantity': 2,
                 'amount': 20.20
             },
             {
-                'item': 'test-1',
+                'name': 'test-1',
                 'quantity': 10,
                 'amount': 101
             }
@@ -240,7 +240,7 @@ class RewriteSpendingsAPITestCase(
         """
         items = [
             {
-                'item': 'TEST-1',
+                'name': 'TEST-1',
                 'quantity': 1,
                 'amount': 10.10
             }
@@ -262,7 +262,7 @@ class RewriteSpendingsAPITestCase(
         """
         items = [
             {
-                'item': 'TEST-1',
+                'name': 'TEST-1',
                 'quantity': 1,
                 'amount': 10.10
             }
@@ -291,7 +291,7 @@ class RewriteSpendingsAPITestCase(
         aggregate_spendings_by_name_mock.side_effect = ValueError('Just for tests')
         items = [
             {
-                'item': 'TEST-1',
+                'name': 'TEST-1',
                 'quantity': 1,
                 'amount': 10.10
             }

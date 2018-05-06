@@ -63,22 +63,22 @@ class FIParserTestCase(TestCase):
                 'date': '2018-06-06 00:00:00',
                 'items': [
                     {
-                        'item': 'HEAT&EAT MOROCCAN FALAFEL',
+                        'name': 'HEAT&EAT MOROCCAN FALAFEL',
                         'amount': 3.35,
                         'quantity': 1
                     },
                     {
-                        'item': 'NECTARINE RASIA ALPINE',
+                        'name': 'NECTARINE RASIA ALPINE',
                         'amount': 2.85,
                         'quantity': 1
                     },
                     {
-                        'item': 'RAJEUUSTO PEHMEA',
+                        'name': 'RAJEUUSTO PEHMEA',
                         'amount': 4.17,
                         'quantity': 3
                     },
                     {
-                        'item': 'BANAANI CHIQUITA',
+                        'name': 'BANAANI CHIQUITA',
                         'amount': 1.67,
                         'quantity': 1
                     },
@@ -121,7 +121,7 @@ class FIParserTestCase(TestCase):
             'date': '2018-04-03 00:00:00',
             'items': [
                 {
-                    'item': 'SALUS FLORADIX',
+                    'name': 'SALUS FLORADIX',
                     'quantity': 1,
                     'amount': 26.21
                 }
@@ -160,12 +160,12 @@ class FIParserTestCase(TestCase):
             'date': '2018-03-26 00:00:00',
             'items': [
                 {
-                    'item': 'Kavikekuori',
+                    'name': 'Kavikekuori',
                     'quantity': 1,
                     'amount': 1.8,
                 },
                 {
-                    'item': 'Postimerkki',
+                    'name': 'Postimerkki',
                     'quantity': 1,
                     'amount': 2.1,
                 }
@@ -198,22 +198,22 @@ class FIParserTestCase(TestCase):
             'date': '2018-03-31 00:00:00',
             'items': [
                 {
-                    'item': 'DRY ROASTED PEANUTS',
+                    'name': 'DRY ROASTED PEANUTS',
                     'quantity': 1,
                     'amount': 1.15
                 },
                 {
-                    'item': 'SEASALT&CIDERINEG CHIPS',
+                    'name': 'SEASALT&CIDERINEG CHIPS',
                     'quantity': 1,
                     'amount': 1.79
                 },
                  {
-                    'item': 'MUSTIKKAMEHU',
+                    'name': 'MUSTIKKAMEHU',
                     'quantity': 1,
                     'amount': 1.75
                 },
                 {
-                    'item': 'ROASTED ALMONDS',
+                    'name': 'ROASTED ALMONDS',
                     'quantity': 1,
                     'amount': 1.69
                 },               
@@ -257,7 +257,7 @@ class FIParserTestCase(TestCase):
            'date': '2018-03-28 00:00:00',
            'items': [
                {
-                   'item': 'Ruisleipa iso',
+                   'name': 'Ruisleipa iso',
                    'quantity': 1,
                    'amount': 3.8
                },

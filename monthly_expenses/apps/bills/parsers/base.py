@@ -25,7 +25,7 @@ class BaseParser(object):
             'date': '%Y-%m-%d %H:%M:%S',
             'items': [
                 {
-                    'item': 'item-name [string]',
+                    'name': 'item-name [string]',
                     'quantity': 'item-quantity [int]',
                     'amount': 'item-amount [float]'
                 }
@@ -73,7 +73,7 @@ class BaseParser(object):
         Returns list of items in format:
         [
             {
-                'item': 'item-name [string]',
+                'name': 'item-name [string]',
                 'quantity': 'item-quantity [int]',
                 'amount': 'item-amount [float]'
             }
@@ -114,7 +114,7 @@ class BaseParser(object):
         if next line need to be skipped
         If item is found, line information should be in format:
         {
-            'item': 'item-name [string]',
+            'name': 'item-name [string]',
             'quantity': 'item-quantity [int]',
             'amount': 'item-amount [float]'    
         }

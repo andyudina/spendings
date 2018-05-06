@@ -137,16 +137,15 @@ class ListMostPopularSpendings(
 
 
 class ItemSerializer(
-        serializers.Serializer):
+        serializers.ModelSerializer):
     """
     Validate individual spending
     """
-    item = serializers.CharField(
-        required=True)
-    amount = serializers.FloatField(
-        required=True)
-    quantity = serializers.IntegerField(
-        required=True)
+
+    class Meta:
+        model = Spending
+        fields = (
+            'name', 'amount', 'quantity')
 
 
 class RewriteSpendingsSerializer(

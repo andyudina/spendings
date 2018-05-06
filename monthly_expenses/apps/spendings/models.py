@@ -96,7 +96,7 @@ class SpendingsManager(models.Manager):
         Accept spendings as a list of dics:
         [
             {
-                'item': [item name str],
+                'name': [item name str],
                 'quantity': [item quantity int],
                 'amount': [total amount for specified quantity float]
             }
