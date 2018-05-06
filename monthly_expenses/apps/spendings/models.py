@@ -137,7 +137,9 @@ class Spending(models.Model):
         null=False, blank=False)
     date = models.DateField(
         verbose_name='Date of the spending')
-    bill = models.ForeignKey('bills.Bill')
+    bill = models.ForeignKey(
+        'bills.Bill', 
+        related_name='spendings')
     create_time = models.DateTimeField(
         verbose_name='Speding was logged',
         auto_now_add=True)

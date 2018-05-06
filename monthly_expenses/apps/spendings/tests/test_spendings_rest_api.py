@@ -3,6 +3,7 @@ Test REST APIs for spendings
 """
 import datetime
 import json
+from mock import patch
 
 from django.core.urlresolvers import reverse
 from django.test import TestCase
@@ -236,14 +237,14 @@ class RewriteSpendinRestAPITestCase(
         date = date or self.date
         items = items if items is not None else self.items
         data = {
-            'bill': bill,
             'date': date,
             'items': items
         }
         if need_auth:
             self.client.force_login(user or self.user)
         return self.client.post(
-            reverse('rewrite-spendings'),
+            reverse('rewrite-list-spendings', 
+                    kwargs={'bill_id': bill}),
             json.dumps(data),
             content_type='application/json')
 
@@ -254,13 +255,13 @@ class RewriteSpendinRestAPITestCase(
         response = self.rewrite_spendings_for_bill()
         self.assertEqual(
             response.status_code,
-            status.HTTP_201_CREATED)
+            status.HTTP_200_OK)
 
     def test_successfully_create_spendings(self):
         """
         We successfully create new spendings
         """
-        response = self.rewrite_spendings_for_bill()
+        self.rewrite_spendings_for_bill()
         self.assertTrue(
             Spending.objects.filter(
                 bill=self.bill,
@@ -311,4 +312,173 @@ class RewriteSpendinRestAPITestCase(
             user=new_user)
         self.assertEqual(
             response.status_code, 
-            status.HTTP_403_FORBIDDEN) 
+            status.HTTP_403_FORBIDDEN)
+
+    def test_user_tries_to_modify_bill_that_doesnt_exist__not_found_returned(
+          self):
+        """
+        We return 404 not found if user tries to acess bill wich does not exist
+        """
+        response = self.rewrite_spendings_for_bill(
+            bill=self.bill.id + 1000)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_404_NOT_FOUND)
+
+class ListSpendinRestAPITestCase(
+        SpendingsTestCase):
+    """
+    Test rest api to list spendings for bill
+    """
+
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.bill = self.create_bill()
+
+    def get_spendings_for_bill(
+            self, 
+            bill=None,
+            need_auth=True, user=None):
+        bill = bill or self.bill.id
+        if need_auth:
+            self.client.force_login(user or self.user)
+        return self.client.get(
+            reverse('rewrite-list-spendings', 
+                    kwargs={'bill_id': bill}),
+            content_type='application/json')
+
+    def create_spendings_for_bill(self, bill):
+        # TODO: ideally test also with creating spendings
+        # for different bill
+        bill.date = datetime.date(2018, 6, 5)
+        bill.save(update_fields=['date'])
+        bill.spendings.create(
+            date = self.bill.date,
+            name='test-1',
+            amount=10,
+            quantity=1)
+        bill.spendings.create(
+            date = self.bill.date,
+            name='test-2',
+            amount=20,
+            quantity=2)
+
+    @patch('apps.bills.models.Bill.parse_bill')
+    def test_successfully_rewriten_spendings__ok_response_returned(
+            self, parse_bill_mock):
+        """
+        We return 201 created if new spendings were successfully created
+        """
+        parse_bill_mock.return_value = {}
+        response = self.get_spendings_for_bill()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    @patch('apps.bills.models.Bill.parse_bill')
+    def test_successfully_list_spendings__saved_spendings_returned(
+            self, parse_bill_mock):
+        """
+        Successfully list saved spendings
+        """
+        parse_bill_mock.return_value = {}
+        self.create_spendings_for_bill(self.bill)
+        response = self.get_spendings_for_bill()
+        self.assertDictEqual(
+            response.data['spendings_saved'],
+            {
+              'date': '2018-06-05 00:00:00',
+              'items': [
+                {
+                  'name': 'test-1',
+                  'amount': 10.0,
+                  'quantity': 1
+                },
+                {
+                  'name': 'test-2',
+                  'amount': 20.0,
+                  'quantity': 2
+                },
+              ]
+            })
+
+    @patch('apps.bills.models.Bill.parse_bill')
+    def test_successfully_list_spendings__parsed_spendings_returned(
+            self, parse_bill_mock):
+        """
+        Successfully list parsed spendings
+        """
+        parse_bill_mock.return_value = {
+            'date': '2018-06-05 00:00:00',
+            'items': [
+                {
+                  'name': 'test-1',
+                  'amount': 10.0,
+                  'quantity': 1
+                },
+            ]
+        }
+        self.create_spendings_for_bill(self.bill)
+        response = self.get_spendings_for_bill()
+        self.assertDictEqual(
+            response.data['spendings_parsed'],
+            {
+              'date': '2018-06-05 00:00:00',
+              'parse_error': None,
+              'items': [
+                {
+                  'name': 'test-1',
+                  'amount': 10.0,
+                  'quantity': 1
+                },
+              ]
+            })
+
+    @patch('apps.bills.models.Bill.parse_bill')
+    def test_successfully_list_spendings__parsed_error_returned(
+            self, parse_bill_mock):
+        """
+        Return parsing error if parsing failed
+        """
+        parse_bill_mock.side_effect = ValueError('test')
+        response = self.get_spendings_for_bill()
+        self.assertDictEqual(
+            response.data['spendings_parsed'],
+            {
+              'date': None,
+              'parse_error': 'test',
+              'items': []
+            })
+
+    def test_user_is_not_logged_in__forbidden_returned(self):
+        """
+        We return 403 forbidden if user is not logged in
+        """
+        response = self.get_spendings_for_bill(
+            need_auth=False)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_403_FORBIDDEN)
+
+    def test_user_tries_to_modify_another_user_spendings__forbidden_returned(self):
+        """
+        We return 403 forbidden if user tries to access another user bill
+        """
+        new_user = self.get_or_create_user(
+            email='new-test-1@test.com')
+        response = self.get_spendings_for_bill(
+            user=new_user)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_403_FORBIDDEN)
+
+    def test_user_tries_to_modify_bill_that_doesnt_exist__not_found_returned(
+          self):
+        """
+        We return 404 not found if user tries to acess bill wich does not exist
+        """
+        response = self.get_spendings_for_bill(
+            bill=self.bill.id + 1000)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_404_NOT_FOUND)

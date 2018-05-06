@@ -1,15 +1,20 @@
 """
 Rest API to display aggregated spendings
 """
+import logging
 from collections import namedtuple
 
+from django.db import transaction
 from rest_framework import (
     serializers, 
+    response, status,
     generics, permissions)
 
 from apps.bills.models import Bill
 from apps.users.permissions import IsBillOwner
 from .models import Spending
+
+logger = logging.getLogger(__name__)
 
 
 ## Spendings aggregation APIS
@@ -153,9 +158,6 @@ class RewriteSpendingsSerializer(
     """
     Validate bill data and rewrite spendings
     """
-    bill = serializers.PrimaryKeyRelatedField(
-        required=True,
-        queryset=Bill.objects.all())
     date = serializers.DateTimeField(
         required=True,
         format='%Y-%m-%d %H:%M:%S')
@@ -169,23 +171,143 @@ class RewriteSpendingsSerializer(
                 'Items can not be blank')
         return items
 
-    def save(self):
+    @transaction.atomic
+    def save_spendings_for_bill(self, bill):
+        """
+        Create spendings passed to serializer
+        Link them to bill
+        Delete previous bill spendings
+
+        Update purchase date for bill
+        """
         Spending.objects.rewrite_spendings_for_bill(
-            self.validated_data['bill'],
+            bill,
             self.validated_data['date'],
             self.validated_data['items'])
- 
+        bill.date = self.validated_data['date']
+        bill.save(update_fields=['date'])
 
-class RewriteSpending(
-        generics.CreateAPIView):
+
+class ListSpendingsSerializer(
+        serializers.Serializer):
     """
-    Rewrite spendings related to bill
+    Read only serilaizer to list spendings for the bill
+    """
+    # bill purchase date
+    date = serializers.DateTimeField(
+        required=False,
+        format='%Y-%m-%d %H:%M:%S')
+    items = ItemSerializer(
+        required=True,
+        many=True)
+
+
+class ListOrRewriteSpending(
+        generics.GenericAPIView):
+    """
+    POST: Rewrite spendings related to bill
     With spendings defined by customer
 
+    Accepts spendings in format: 
+    {
+      'date': [spendings created date: %Y-%m-%d 00:00:00],
+      'items': [
+        {
+          'name': [item name: str],
+          'amount': [amount: int],
+          'quantity': [quantity: float]
+        }
+      ]
+    }
+
     Warning: preious spendings will be deleted
+
+    GET: return parsed and saved list of spendings related to bill.
+    returns spendings in format: 
+    {
+      'spendings_saved': {
+        #spendings that are saved to database
+        'items': [
+          {
+            'name': [item name: str],
+            'amount': [amount: int],
+            'quantity': [quantity: float]
+          }
+          'date': [spendings created date: %Y-%m-%d 00:00:00],'
+        ],
+       },
+      'spendings_parsed': {
+        'parse_error': [error during parsing or None],
+        'date': [spendings created date: %Y-%m-%d 00:00:00],
+        'items': [
+          {
+            'name': [item name: str],
+            'amount': [amount: int],
+            'quantity': [quantity: float]
+          }
+        ]
+      }
+    }
     """
-    serializer_class = RewriteSpendingsSerializer
+    queryset = Bill.objects.all()
+    lookup_url_kwarg = 'bill_id'
     permission_classes = (
         permissions.IsAuthenticated, 
         IsBillOwner)
 
+    def get(self, *args, **kwargs):
+        bill = self.get_object()
+        spendings_serializer = ListSpendingsSerializer(
+            {
+                'date': bill.date, 
+                'items': bill.spendings
+            })
+        result = {
+            'spendings_saved': spendings_serializer.data
+        }
+        # populate result with parsed spendings
+        result['spendings_parsed'] = self._get_parsed_spendings(bill)
+        return response.Response(
+            result, 
+            status=status.HTTP_200_OK)
+
+    def _get_parsed_spendings(self, bill):
+        """
+        Try get parsed spendings from bill
+        return data in format:
+        {
+          'parse_error': [error during parsing or None],
+          'date': [spendings created date: %Y-%m-%d 00:00:00],
+          'items': [
+            {
+              'name': [item name: str],
+              'amount': [amount: int],
+              'quantity': [quantity: float]
+            }
+          ]
+        }
+        """
+        try:
+            spendings = bill.parse_bill()
+            spendings['parse_error'] = None
+            return spendings
+        except ValueError as e:
+            logger.debug(
+                'Can not parse spendins in bill %d' % bill.id)
+            # Return parsing error if bill can not be parsed
+            return {
+                'parse_error': e.args[0],
+                'date': None,
+                'items': []
+            }
+
+
+    def post(self, request, *args, **kwargs):
+        bill = self.get_object()
+        serializer = RewriteSpendingsSerializer(
+            data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save_spendings_for_bill(bill)
+        return response.Response(
+            serializer.data, 
+            status=status.HTTP_200_OK)
