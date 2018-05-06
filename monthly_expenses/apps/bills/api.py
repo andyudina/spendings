@@ -56,25 +56,6 @@ class UploadBillAPI(
         - status code: 201
         - format: {
             'bill_id': [bill_id int],
-            'parsed_spendings': {
-                'date': '%Y-%m-%d 00:00:00',
-                'items': [
-                    {
-                        'item': [item name str],
-                        'quantity': [item quantity int],
-                        'amount': [item amount float]
-                    }
-                ]
-            }
-        }
-
-    Bill can not be parsed:
-        - status code: 406
-        - format: {
-            'bill_id': [bill_id int],
-            'parsed_spendings': {
-                'error': [parsing error str]
-            }
         }
 
     Problems with upload:
@@ -91,19 +72,8 @@ class UploadBillAPI(
         with transaction.atomic():
             bill = serializer.save()
         response_data = {
-            'bill': bill.id}
-        try:
-            # try parse bill and return parsed info
-            response_data['parsed_spendings'] = bill.parse_bill()
-        except ValueError as e:
-            logger.debug(
-                'Can not parse spendins in bill %d' % bill.id)
-            # Return parsing error if bill can not be parsed
-            response_data['parsed_spendings'] = {
-                'error': e.args[0]}
-            return response.Response(
-                response_data,
-                status=status.HTTP_406_NOT_ACCEPTABLE)
+            'bill': bill.id
+        }
         return response.Response(
             response_data,
             status=status.HTTP_201_CREATED)
