@@ -255,6 +255,15 @@ class ListOrRewriteSpending(
         permissions.IsAuthenticated, 
         IsBillOwner)
 
+    def get_serializer_class(self):
+        """
+        Used only for displaying drf docs
+        """
+        if self.request.method == 'GET':
+            return ListSpendingsSerializer
+        elif self.request.method == 'POST':
+            return RewriteSpendingsSerializer
+
     def get(self, *args, **kwargs):
         bill = self.get_object()
         spendings_serializer = ListSpendingsSerializer(
@@ -300,7 +309,6 @@ class ListOrRewriteSpending(
                 'date': None,
                 'items': []
             }
-
 
     def post(self, request, *args, **kwargs):
         bill = self.get_object()
