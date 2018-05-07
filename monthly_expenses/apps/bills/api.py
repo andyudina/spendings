@@ -3,7 +3,7 @@ REST API endpoints to parse and upload bills images
 """
 import logging
 
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.contrib.auth.models import User
 from rest_framework import (
     status, serializers, 
@@ -32,25 +32,35 @@ class CreateBillSerializer(
         model = Bill
         fields = ('image', 'user')
 
-    def validate_image(self, image):
+    @transaction.atomic
+    def save_or_get_existing(self):
         """
-        Validate that the image was not uploaded yet
+        Try save serializer or return bill
+        if same image was already uploaded
+        Returns flag, that shows if bill was created
+        and bill
         """
-        # WARNING: prone to race conditions here
-        sha256_hash_hex = generate_hash_from_image(image)
-        if Bill.objects.\
-                filter(sha256_hash_hex=sha256_hash_hex).\
-                exists():
-            raise serializers.ValidationError(
-                IMAGE_ALREADY_UPLOADED_ERROR)
-        return image
+        # TODO: move to the Bill model
+        try:
+            with transaction.atomic():
+                return (
+                    True, self.save())
+        except IntegrityError as e:
+            logger.debug(
+                'Can not create new bill '
+                'Original error: %s' % str(e))
+            sha256_hash_hex = generate_hash_from_image(
+                self.validated_data['image'])
+            return (
+                False, 
+                Bill.objects.get(sha256_hash_hex=sha256_hash_hex))
 
 
-class UploadBillAPI(
+class UploadUniqueBillAPI(
         generics.GenericAPIView):
     """
     Upload bill if not exist
-    Returns parsed bill info and bill id.
+    If exists, returns bill id of exisiting bill
 
     Successfull response:
         - status code: 201
@@ -69,11 +79,12 @@ class UploadBillAPI(
             self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        with transaction.atomic():
-            bill = serializer.save()
+        is_created, bill = serializer.save_or_get_existing()
         response_data = {
             'bill': bill.id
         }
+        result_status = status.HTTP_201_CREATED if is_created \
+            else status.HTTP_200_OK
         return response.Response(
             response_data,
-            status=status.HTTP_201_CREATED)
+            status=result_status)

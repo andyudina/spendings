@@ -75,20 +75,27 @@ class BillRestAPITest(BillTestCase):
                 'bill': bill.id,
             })
 
-    def test_upload_bill_already_exists__error_returned(self):
+    def test_upload_bill_already_exists__existing_bill_returned(self):
         """
-        We raise error if bill aready uploaded
+        We return existing bill if bill was already uploaded
         """
-        self.create_bill()
-        response = self.upload_bill()
-        self.assertEqual(
-            response.status_code, 
-            status.HTTP_400_BAD_REQUEST)    
+        bill = self.create_bill()
+        response = self.upload_bill()  
         self.assertDictEqual(
             response.data,
             {
-                'image': [IMAGE_ALREADY_UPLOADED_ERROR]
+                'bill': bill.id
             })
+
+    def test_upload_bill_already_exists__ok_response_returned(self):
+        """
+        We return 200 OK if bill was already uploaded
+        """
+        self.create_bill()
+        response = self.upload_bill()  
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
 
     def test_not_authenticated_tries_load_bill__error_returned(self):
         """
