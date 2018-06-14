@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
 
+    'apps.budgets',
     'apps.bills',
     'apps.spendings',
 ]
