@@ -7,6 +7,7 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^api/bills/', include('apps.bills.urls')),
+    url(r'^api/budgets/', include('apps.budgets.urls')),
     url(r'^api/spendings/', include('apps.spendings.urls')),
     url(r'^api/users/', include('apps.users.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
