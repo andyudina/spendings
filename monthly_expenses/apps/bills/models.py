@@ -3,7 +3,7 @@ import logging
 from PIL import Image
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from pytesseract import image_to_string
 
 from .parsers import load_parser
@@ -80,3 +80,36 @@ class Bill(models.Model):
         image_path = os.path.join(MEDIA_ROOT, self.image.url)
         image = Image.open(image_path)
         return image_to_string(image)
+
+    def create_categories_in_bulk(self, categories):
+        """
+        Accepts list of dictionaries with format:
+        [
+            {
+                'id': [category to bill id -- optional],
+                'amount': [amount of category in bill],
+                'category': {
+                    'id': [category id],
+                    'name': [category name -- optional]
+                }
+            }
+        ]
+        Creates in bulk bill to categories links
+        No format validation is performed
+        """
+        from apps.budgets.models import (
+            Category, BillCategory)
+        categories_to_be_created = [
+           BillCategory(
+                amount=category['amount'],
+                category=Category.objects.get(
+                    # TODO: shitty solution from performance prospective
+                    # For now it's better fail loudly here
+                    id=category['category']['id']),
+                bill=self
+            )
+           for category in categories
+        ]
+        with transaction.atomic():
+            BillCategory.objects.bulk_create(
+                categories_to_be_created)

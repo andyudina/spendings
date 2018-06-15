@@ -4,6 +4,7 @@ Tests for python API of apps.bills.models.Bill model
 from mock import Mock, patch
 
 from apps.bills.models import Bill
+from apps.budgets.models import Category
 from .helpers import BillTestCase
 
 
@@ -102,3 +103,60 @@ class BillPythonAPITestCase(BillTestCase):
         bill = self.create_bill()
         with self.assertRaises(ValueError):
             bill.parse_bill()
+
+    def test_category_linking_in_bulk__success(self):
+        """
+        We create categories to bill links in bulk
+        if format of passed data is correct
+        """
+        category = Category.objects.create(name='test')
+        bill = self.create_bill()
+        bill.create_categories_in_bulk([{
+                'category': {
+                    'id': category.id,
+                },
+                'amount': 10
+            }])
+        self.assertTrue(
+            bill.categories.filter(id=category.id))
+
+    def test_category_linking_in_bulk__error_raised_if_category_does_not_exist(
+            self):
+        """
+        We raise ObjectNotFound error if any passed category
+        does not exist
+        """
+        bill = self.create_bill()
+        with self.assertRaises(Category.DoesNotExist):
+            bill.create_categories_in_bulk([
+                {
+                    'category': {
+                        'id': 10,
+                    },
+                    'amount': 10
+                }
+            ])
+
+    def test_category_linking_in_bulk__error_raised_for_duplicates(
+            self):
+        """
+        We raise IntegrityError if we try to create duplicated links
+        """
+        from django.db import IntegrityError
+        category = Category.objects.create(name='test')
+        bill = self.create_bill()
+        with self.assertRaises(IntegrityError):
+            bill.create_categories_in_bulk([
+                {
+                    'category': {
+                        'id': category.id,
+                    },
+                    'amount': 10
+                },
+                {
+                    'category': {
+                        'id': category.id,
+                    },
+                    'amount': 10
+                }
+            ])
