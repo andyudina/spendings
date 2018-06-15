@@ -4,6 +4,7 @@ REST API endpoints to parse and upload bills images
 import logging
 
 from django.db import transaction, IntegrityError
+from django.db.models import Count
 from django.contrib.auth.models import User
 from rest_framework import (
     mixins,
@@ -121,8 +122,16 @@ class ListUploadUniqueBillAPI(
         for the currently authenticated user.
         """
         user = self.request.user
-        return Bill.objects.\
-            prefetch_related('categories').filter(user=user)
+        qs = Bill.objects.\
+            prefetch_related('categories').\
+            filter(user=user)
+        if self.request.GET.get('uncategorised'):
+            # filter out bills
+            # with categories
+            qs = qs.\
+                annotate(categories_number=Count('categories')).\
+                filter(categories_number=0)
+        return qs
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)

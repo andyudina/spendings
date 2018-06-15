@@ -455,14 +455,23 @@ class ListBillRestAPITest(BillTestCase):
         self.bill = self.create_bill()
 
     def list_bills(
-            self, auth_needed=True):
+            self, auth_needed=True,
+            only_uncategorised=False):
         """
         Helper to upload bill via api
         """
         if auth_needed:
             self.client.force_login(self.user)
+        client_args = []
+        if only_uncategorised:
+            client_args = [
+                {
+                    'uncategorised': True
+                }
+            ]
         return self.client.get(
-            reverse('bill'))
+            reverse('bill'),
+            *client_args)
 
     def test_list_bill__successfull_response(self):
         """
@@ -497,6 +506,18 @@ class ListBillRestAPITest(BillTestCase):
         response = self.list_bills()
         self.assertTrue(
             response.data[0]['has_categories'])
+
+
+    def test_list_uncategorised_bill(self):
+        """
+        We  filter out bills with categories
+        if flag passed
+        """
+        self.create_categories_for_bill(self.bill)
+        response = self.list_bills(
+            only_uncategorised=True)
+        self.assertListEqual(
+            response.data, [])
 
     def test_list_bill__filter_out_bills_for_different_user(self):
         """
