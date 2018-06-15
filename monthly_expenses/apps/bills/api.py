@@ -6,7 +6,8 @@ import logging
 from django.db import transaction, IntegrityError
 from django.contrib.auth.models import User
 from rest_framework import (
-    status, serializers, 
+    mixins,
+    exceptions, status, serializers,
     generics, response, permissions)
 
 from apps.budgets.models import Category, BillCategory
@@ -58,24 +59,73 @@ class CreateBillSerializer(
                 Bill.objects.get(sha256_hash_hex=sha256_hash_hex))
 
 
-class UploadUniqueBillAPI(
+class ListBillsSerialiser(
+        serializers.ModelSerializer):
+    """
+    Serialiser for bill listing
+    Shows if bills were categorised
+    """
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        # Remove standart drf behaviour of generating
+        # Full urls
+        return obj.image.url
+
+    class Meta:
+        model = Bill
+        fields = ('image', 'id', 'has_categories')
+
+
+class ListUploadUniqueBillAPI(
+        mixins.ListModelMixin,
         generics.GenericAPIView):
     """
-    Upload bill if not exist
-    If exists, returns bill id of exisiting bill
+    POST:
+        Upload bill if not exist
+        If exists, returns bill id of exisiting bill
 
-    Successfull response:
-        - status code: 201
-        - format: {
-            'bill_id': [bill_id int],
-        }
+        Successfull response:
+            - status code: 201
+            - format: {
+                'bill_id': [bill_id int],
+            }
 
-    Problems with upload:
-        - status code: 400
+        Problems with upload:
+            - status code: 400
+    GET:
+        List bills for current user
+        Successfull response:
+            - status code: 200
+            - format: [
+                {
+                   'id': [bill id],
+                   'image':, [image url]
+                   'has_categories': [true if bill was categorised]
+                }
+            ]
     """
-    serializer_class = CreateBillSerializer
     permission_classes = (
         permissions.IsAuthenticated, )
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateBillSerializer
+        elif self.request.method == 'GET':
+            return ListBillsSerialiser
+        raise exceptions.MethodNotAllowed(self.request.method)
+
+    def get_queryset(self):
+        """
+        On get request his view should return a list of all bills
+        for the currently authenticated user.
+        """
+        user = self.request.user
+        return Bill.objects.\
+            prefetch_related('categories').filter(user=user)
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
     def post(
             self, request, *args, **kwargs):

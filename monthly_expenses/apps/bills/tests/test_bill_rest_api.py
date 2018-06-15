@@ -444,3 +444,78 @@ class UpdateBillRestAPITest(BillTestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_404_NOT_FOUND)
+
+
+class ListBillRestAPITest(BillTestCase):
+    """
+    Test rest api endpoints for listing bills
+    """
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.bill = self.create_bill()
+
+    def list_bills(
+            self, auth_needed=True):
+        """
+        Helper to upload bill via api
+        """
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.get(
+            reverse('bill'))
+
+    def test_list_bill__successfull_response(self):
+        """
+        We return 200 when bills are successfully listed
+        """
+        response = self.list_bills()
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_200_OK)
+
+    def test_list_bill__valid_information_returned(self):
+        """
+        We return valid information about bill
+        """
+        response = self.list_bills()
+        self.assertListEqual(
+            response.data,
+            [
+                {
+                    'id': self.bill.id,
+                    'image': self.bill.image.url,
+                    'has_categories': False
+                }
+            ]
+        )
+
+    def test_list_bill_with_categories(self):
+        """
+        We return flag that showes if bill has categories
+        """
+        self.create_categories_for_bill(self.bill)
+        response = self.list_bills()
+        self.assertTrue(
+            response.data[0]['has_categories'])
+
+    def test_list_bill__filter_out_bills_for_different_user(self):
+        """
+        We show only bills for current user
+        """
+        new_user = self.get_or_create_user(
+            email='new-test-1@test.com')
+        self.bill.user = new_user
+        self.bill.save(update_fields=['user', ])
+        response = self.list_bills()
+        self.assertListEqual(
+            response.data, [])
+
+    def test_not_authenticated_tries_to_list_bills__error_returned(self):
+        """
+        We return 403 forbidden if user is not logged in
+        """
+        response = self.list_bills(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)

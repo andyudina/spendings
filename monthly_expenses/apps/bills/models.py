@@ -48,6 +48,9 @@ class Bill(models.Model):
         'budgets.Category',
         through='budgets.BillCategory')
 
+    @property
+    def has_categories(self):
+        return self.categories.all().exists()
 
     def parse_bill(self, reparse=False):
         """
