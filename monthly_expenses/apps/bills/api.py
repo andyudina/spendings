@@ -9,6 +9,8 @@ from rest_framework import (
     status, serializers, 
     generics, response, permissions)
 
+from apps.budgets.models import Category, BillCategory
+from apps.users.permissions import IsBillOwner
 from .models import Bill
 from .utils import generate_hash_from_image
 
@@ -88,3 +90,80 @@ class UploadUniqueBillAPI(
         return response.Response(
             response_data,
             status=result_status)
+
+
+## API endpoint to retrieve bill
+
+
+class CategorySerialiser(
+        serializers.ModelSerializer):
+    """
+    Serialiser for budgeting category
+    Read only
+    """
+    class Meta:
+        model = Category
+        fields = ('name', )
+
+
+class BillCategorySerializer(
+        serializers.ModelSerializer):
+    """
+    Serialiser for category of a bill
+    """
+    category = CategorySerialiser(read_only=True)
+
+    class Meta:
+        model = BillCategory
+        fields = (
+            'id', 'category', 'amount')
+
+
+class RetrieveBillSerializer(
+        serializers.ModelSerializer):
+    """
+    Serialiser for bill retrieval
+    """
+    categories = BillCategorySerializer(
+        source='bill_to_category',
+        many=True, read_only=True)
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        # Remove standart drf behaviour of generating
+        # Full urls
+        return obj.image.url
+
+    class Meta:
+        model = Bill
+        fields = (
+            'image', 'date', 'categories')
+
+class RetrieveBillAPI(
+        generics.RetrieveAPIView):
+    """
+    Retrieve bill by id
+
+    Successfull response:
+        - status code: 200
+        - format: {
+            'image': [path to image],
+            'date': [uploaded date],
+            'categories': [
+                {
+                    id: [category to bill link id],
+                    category: {
+                        'id': [category id],
+                        'name': [category name],
+                    },
+                    amount: [bill amount for specific category]
+                },
+            ]
+        }
+    """
+    lookup_url_kwarg = 'bill_id'
+    queryset = Bill.objects.all()
+    serializer_class = RetrieveBillSerializer
+    permission_classes = (
+        permissions.IsAuthenticated, 
+        IsBillOwner)

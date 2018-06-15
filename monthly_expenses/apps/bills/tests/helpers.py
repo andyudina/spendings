@@ -45,6 +45,47 @@ class TestBillMixin(object):
         image_hash.update(DEFAULT_CHECK_IMAGE)
         return image_hash.hexdigest()
 
+    def create_categories_for_bill(
+            self, bill):
+        """
+        Helper to create categories and link them to bill
+        """
+        from apps.budgets.models import (
+            Category, BillCategory)
+        CATEGORIES = [
+            {
+                'category': {
+                    'id': 1,
+                    'name': 'a-test'
+                },
+                'id': 1,
+                'amount': 10
+            },
+            {
+                'category': {
+                    'id': 2,
+                    'name': 'b-test'
+                },
+                'id': 2,
+                'amount': 20
+            },
+        ]
+        for category in CATEGORIES:
+            (category_obj, _) = \
+                 Category.objects.get_or_create(**category['category'])
+            Category.objects.\
+                filter(id=category_obj.id).\
+                update(**category['category'])
+            category_obj = Category.objects.get(
+                id=category['category']['id'])
+            category_to_bill = BillCategory.objects.create(
+                bill=bill,
+                category=category_obj,
+                amount=category['amount'])
+            BillCategory.objects.\
+                filter(id=category_to_bill.id).\
+                update(id=category['id'])
+
 
 class BillTestCase(
         TestBillMixin, TestCase):

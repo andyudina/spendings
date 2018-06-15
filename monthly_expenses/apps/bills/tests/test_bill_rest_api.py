@@ -12,7 +12,7 @@ from .check_image import CHECK_IMAGE as DEFAULT_CHECK_IMAGE
 from .helpers import BillTestCase
 
 
-class BillRestAPITest(BillTestCase):
+class UploadBillRestAPITest(BillTestCase):
     """
     Test rest api endpoints for uploading and managing bills
     """
@@ -107,3 +107,100 @@ class BillRestAPITest(BillTestCase):
         self.assertEqual(
             response.status_code, 
             status.HTTP_403_FORBIDDEN)
+
+
+class RetrieveBillRestAPITest(BillTestCase):
+    """
+    Test rest api endpoints for retrieving bills
+    """
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.bill = self.create_bill()
+
+    def retrieve_bill(
+            self, 
+            bill_id=None, 
+            auth_needed=True):
+        """
+        Helper to retrieve bill via api
+        """
+        bill_id = bill_id or self.bill.id
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.get(
+            reverse(
+                'retrieve-bill', 
+                kwargs={
+                    'bill_id': bill_id
+                }))
+
+    def test_retrieve_bill__successfull_response(self):
+        """
+        We return 200 OK when bill is successfully retrieved
+        """
+        response = self.retrieve_bill()
+        self.assertEqual(
+            response.status_code, status.HTTP_200_OK)
+
+    def test_retrieve_bill__bill_and_categories_returned(self):
+        """
+        We return basic bill info and all linked categories
+        """
+        self.create_categories_for_bill(self.bill)
+        response = self.retrieve_bill()
+        self.assertDictEqual(
+            response.data,
+            {
+                'image': self.bill.image.url,
+                'date': self.bill.date,
+                'categories': [
+                    {
+                        'category': {
+                           'name': 'a-test'
+                        },
+                        'id': 1,
+                        'amount': 10
+                    },
+                    {
+                        'category': {
+                            'name': 'b-test'
+                        },
+                        'id': 2,
+                        'amount': 20
+                    },
+                ]
+            })
+
+    def test_retrieve_bill_without_auth__error_returned(self):
+        """
+        We return 403 forbidden if user is not logged in
+        """   
+        response = self.retrieve_bill(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_retrieve_bill_for_another_user__error_returned(self):
+        """
+        We return 403 forbidden if user tries to retrieve bill
+        created by another user
+        """
+        new_user = self.get_or_create_user(
+            email='new-test-1@test.com')
+        self.bill.user = new_user
+        self.bill.save(update_fields=['user', ])
+        response = self.retrieve_bill()
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_403_FORBIDDEN)
+
+    def test_retrieve_non_existing_bill___error_returned(self):
+        """
+        We return 404 not found if user tries to retrieve bill
+        with invalid id
+        """   
+        response = self.retrieve_bill(bill_id=self.bill.id + 1)
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_404_NOT_FOUND)

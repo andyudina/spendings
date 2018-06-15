@@ -44,6 +44,10 @@ class Bill(models.Model):
     user = models.ForeignKey(
         'auth.User', blank=False, null=False,
         verbose_name='Owner')
+    categories = models.ManyToManyField(
+        'budgets.Category',
+        through='budgets.BillCategory')
+
 
 
     def parse_bill(self, reparse=False):
