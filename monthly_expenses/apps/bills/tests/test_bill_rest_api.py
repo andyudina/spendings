@@ -30,8 +30,8 @@ class UploadBillRestAPITest(BillTestCase):
             reverse('bill'),
             {
                 'image': SimpleUploadedFile(
-                    name='test_check.jpg', 
-                    content=DEFAULT_CHECK_IMAGE, 
+                    name='test_check.jpg',
+                    content=DEFAULT_CHECK_IMAGE,
                     content_type='image/jpeg')
             },
             format='multipart')
@@ -70,7 +70,7 @@ class UploadBillRestAPITest(BillTestCase):
         response = self.upload_bill()
         bill = Bill.objects.latest('create_time')
         self.assertEqual(
-            response.data, 
+            response.data,
             {
                 'bill': bill.id,
             })
@@ -105,13 +105,13 @@ class UploadBillRestAPITest(BillTestCase):
         response = self.upload_bill(
             auth_needed=False)
         self.assertEqual(
-            response.status_code, 
+            response.status_code,
             status.HTTP_403_FORBIDDEN)
 
 
 class RetrieveBillRestAPITest(BillTestCase):
     """
-    Test rest api endpoints for retrieving bills
+    Test rest api endpoint for retrieving bills
     """
     def setUp(self):
         self.user = self.get_or_create_user()
@@ -129,7 +129,7 @@ class RetrieveBillRestAPITest(BillTestCase):
             self.client.force_login(self.user)
         return self.client.get(
             reverse(
-                'retrieve-bill', 
+                'retrieve-update-bill', 
                 kwargs={
                     'bill_id': bill_id
                 }))
@@ -156,14 +156,16 @@ class RetrieveBillRestAPITest(BillTestCase):
                 'categories': [
                     {
                         'category': {
-                           'name': 'a-test'
+                           'name': 'a-test',
+                           'id': 1,
                         },
                         'id': 1,
                         'amount': 10
                     },
                     {
                         'category': {
-                            'name': 'b-test'
+                            'name': 'b-test',
+                            'id': 2
                         },
                         'id': 2,
                         'amount': 20
@@ -203,4 +205,242 @@ class RetrieveBillRestAPITest(BillTestCase):
         response = self.retrieve_bill(bill_id=self.bill.id + 1)
         self.assertEqual(
             response.status_code, 
+            status.HTTP_404_NOT_FOUND)
+
+
+class UpdateBillRestAPITest(BillTestCase):
+    """
+    Test rest api endpoint for updating bill categories
+    """
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.bill = self.create_bill()
+
+    def update_bill(
+            self,
+            data=None,
+            bill_id=None, 
+            auth_needed=True):
+        """
+        Helper to retrieve bill via api
+        """
+        import json
+        data = data or {
+            'categories': []
+        }
+        bill_id = bill_id or self.bill.id
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.patch(
+            reverse(
+                'retrieve-update-bill',
+                kwargs={
+                    'bill_id': bill_id
+                }),
+            json.dumps(data),
+            content_type='application/json')
+
+    def test_update_bill__successfull_response(self):
+        """
+        We return 200 OK when bill is successfully updated
+        """
+        response = self.update_bill()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_add_new_category_to_bill__categories_updated(self):
+        """
+        We successfully add new category to bill
+        """
+        from apps.budgets.models import Category
+        self.create_categories_for_bill(self.bill)
+        category = Category.objects.create(name='d-test')
+        response = self.update_bill(
+            data={
+            'categories': [
+                {
+                    'category': {
+                        'id': 1,
+                        'name': 'a-test'
+                    },
+                   'id': 1,
+                    'amount': 10
+                },
+                {
+                    'category': {
+                        'id': 2,
+                        'name': 'b-test'
+                    },
+                    'id': 2,
+                    'amount': 20
+                },
+                {
+                    'category': {
+                        'id': category.id,
+                        'name': 'd-test'
+                    },
+                    'amount': 30
+                },
+            ]})
+        self.assertTrue(
+            self.bill.categories.\
+                filter(id=category.id).exists())
+
+    def test_delete_category_to_bill__categories_updated(self):
+        """
+        We successfully remove category from bill
+        """
+        self.create_categories_for_bill(self.bill)
+        response = self.update_bill(
+            data={
+            'categories': [
+                {
+                    'category': {
+                        'id': 1,
+                        'name': 'a-test'
+                    },
+                   'id': 1,
+                    'amount': 10
+                }
+            ]})
+        self.assertFalse(
+            self.bill.categories.\
+                filter(name='b-test').exists())
+
+    def test_edit_category_amount__categories_updated(self):
+        """
+        We successfully edit category amount
+        """
+        self.create_categories_for_bill(self.bill)
+        response = self.update_bill(
+            data={
+            'categories': [
+                {
+                    'category': {
+                        'id': 1,
+                        'name': 'a-test'
+                    },
+                   'id': 1,
+                    'amount': 10
+                },
+                {
+                    'category': {
+                        'id': 2,
+                        'name': 'b-test'
+                    },
+                    'id': 2,
+                    'amount': 30
+                },
+            ]})
+        self.assertTrue(
+            self.bill.categories.\
+                filter(
+                    name='b-test',
+                    category_to_bill__amount=30.0).exists())
+
+    def test_add_non_existing_category__400_returned(self):
+        """
+        We return 400 bad request if category doesn't exist
+        """
+        self.create_categories_for_bill(self.bill)
+        response = self.update_bill(
+            data={
+            'categories': [
+                {
+                    'category': {
+                        'id': 1,
+                        'name': 'a-test'
+                    },
+                   'id': 1,
+                    'amount': 10
+                },
+                {
+                    'category': {
+                        'id': 2,
+                        'name': 'b-test'
+                    },
+                    'id': 2,
+                    'amount': 20
+                },
+                {
+                    'category': {
+                        'id': 3,
+                        'name': 'd-test'
+                    },
+                    'amount': 30
+                },
+            ]})
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_add_non_existing_category__new_category_wasnt_created(self):
+        """
+        We do not create new category if category doesn't exist
+        """
+        from apps.budgets.models import Category
+        self.create_categories_for_bill(self.bill)
+        response = self.update_bill(
+            data={
+            'categories': [
+                {
+                    'category': {
+                        'id': 1,
+                        'name': 'a-test'
+                    },
+                   'id': 1,
+                    'amount': 10
+                },
+                {
+                    'category': {
+                        'id': 2,
+                        'name': 'b-test'
+                    },
+                    'id': 2,
+                    'amount': 20
+                },
+                {
+                    'category': {
+                        'id': 3,
+                        'name': 'd-test'
+                    },
+                    'amount': 30
+                },
+            ]})
+        self.assertFalse(
+            Category.objects.filter(name='d-test').exists())
+
+    def test_update_bill_without_auth__error_returned(self):
+        """
+        We return 403 forbidden if user is not logged in
+        """
+        response = self.update_bill(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_update_bill_for_another_user__error_returned(self):
+        """
+        We return 403 forbidden if user tries to update bill
+        created by another user
+        """
+        new_user = self.get_or_create_user(
+            email='new-test-1@test.com')
+        self.bill.user = new_user
+        self.bill.save(update_fields=['user', ])
+        response = self.update_bill()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_update_non_existing_bill___error_returned(self):
+        """
+        We return 404 not found if user tries to update bill
+        with invalid id
+        """
+        response = self.update_bill(bill_id=self.bill.id + 1)
+        self.assertEqual(
+            response.status_code,
             status.HTTP_404_NOT_FOUND)

@@ -101,9 +101,25 @@ class CategorySerialiser(
     Serialiser for budgeting category
     Read only
     """
+    id = serializers.IntegerField(
+        # need to pass id to update
+        read_only=False)
+    name = serializers.CharField(read_only=True)
+
+    def validate_id(self, value):
+        """
+        Make sure that id belongs to existing category
+        """
+        if Category.objects.\
+                filter(id=value).\
+                exists() == False:
+            raise serializers.ValidationError(
+                'Non existing categoru')
+        return value
+
     class Meta:
         model = Category
-        fields = ('name', )
+        fields = ('name', 'id')
 
 
 class BillCategorySerializer(
@@ -111,7 +127,7 @@ class BillCategorySerializer(
     """
     Serialiser for category of a bill
     """
-    category = CategorySerialiser(read_only=True)
+    category = CategorySerialiser(read_only=False)
 
     class Meta:
         model = BillCategory
@@ -119,31 +135,50 @@ class BillCategorySerializer(
             'id', 'category', 'amount')
 
 
-class RetrieveBillSerializer(
+class RetrieveUpdateBillSerializer(
         serializers.ModelSerializer):
     """
     Serialiser for bill retrieval
     """
     categories = BillCategorySerializer(
+        read_only=False,
         source='bill_to_category',
-        many=True, read_only=True)
+        many=True)
+    # method field is read only by feafult
     image = serializers.SerializerMethodField()
+    date = serializers.DateTimeField(read_only=True)
 
     def get_image(self, obj):
         # Remove standart drf behaviour of generating
         # Full urls
         return obj.image.url
 
+    @transaction.atomic
+    def update(
+            self, instance, validated_data):
+        """
+        Update categories, linked to bill
+        Rewrites all the categories by deleting previous categories links
+        and creating brand new ones
+        """
+        instance.categories.clear()
+        instance.create_categories_in_bulk(
+            validated_data['bill_to_category'])
+        return instance
+
     class Meta:
         model = Bill
         fields = (
             'image', 'date', 'categories')
 
-class RetrieveBillAPI(
-        generics.RetrieveAPIView):
-    """
-    Retrieve bill by id
 
+class RetrieveUpdateBillAPI(
+        generics.RetrieveUpdateAPIView):
+    """
+    Retrieve or updates bill by id
+
+    GET:
+    Retrieve bill info and categories
     Successfull response:
         - status code: 200
         - format: {
@@ -160,10 +195,16 @@ class RetrieveBillAPI(
                 },
             ]
         }
+    PATCH:
+    Used to update bill categories only
+    Successfull response:
+        - status code: 200
+    Errors on update:
+        - status code: 400
     """
     lookup_url_kwarg = 'bill_id'
     queryset = Bill.objects.all()
-    serializer_class = RetrieveBillSerializer
+    serializer_class = RetrieveUpdateBillSerializer
     permission_classes = (
         permissions.IsAuthenticated, 
         IsBillOwner)

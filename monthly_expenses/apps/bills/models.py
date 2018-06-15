@@ -49,7 +49,6 @@ class Bill(models.Model):
         through='budgets.BillCategory')
 
 
-
     def parse_bill(self, reparse=False):
         """
         Get text information from bill image and
