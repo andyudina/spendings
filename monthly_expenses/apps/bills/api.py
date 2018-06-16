@@ -12,7 +12,7 @@ from rest_framework import (
     generics, response, permissions)
 
 from apps.budgets.models import Category, BillCategory
-from apps.users.permissions import IsBillOwner
+from apps.users.permissions import IsOwner
 from .models import Bill
 from .utils import generate_hash_from_image
 
@@ -266,4 +266,4 @@ class RetrieveUpdateBillAPI(
     serializer_class = RetrieveUpdateBillSerializer
     permission_classes = (
         permissions.IsAuthenticated, 
-        IsBillOwner)
+        IsOwner)

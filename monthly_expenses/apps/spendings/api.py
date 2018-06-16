@@ -11,7 +11,7 @@ from rest_framework import (
     generics, permissions)
 
 from apps.bills.models import Bill
-from apps.users.permissions import IsBillOwner
+from apps.users.permissions import IsOwner
 from .models import Spending
 
 logger = logging.getLogger(__name__)
@@ -253,7 +253,7 @@ class ListOrRewriteSpending(
     lookup_url_kwarg = 'bill_id'
     permission_classes = (
         permissions.IsAuthenticated, 
-        IsBillOwner)
+        IsOwner)
 
     def get_serializer_class(self):
         """
