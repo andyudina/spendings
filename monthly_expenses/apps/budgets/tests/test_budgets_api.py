@@ -78,7 +78,7 @@ class CreateBudgetAPITestCase(TestCase):
 
     def setUp(self):
         from django.contrib.auth.models import User
-        self.user, _ = User.objects.get_or_create(
+        self.user = User.objects.create(
             username='test@gmai.com',
             email='test@gmai.com',
             password='#')

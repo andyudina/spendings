@@ -25,16 +25,18 @@ class TestBillMixin(object):
             password='#')
         return user
 
-    def create_bill(self, user=None):
+    def create_bill(
+            self, user=None, content=None):
         """
         Helper to create a check image with predefined content
         """
+        content = content or DEFAULT_CHECK_IMAGE
         user = user or self.get_or_create_user()
         return Bill.objects.create(
                 user=user,
                 image=SimpleUploadedFile(
-                    name='test_check.jpg', 
-                    content=DEFAULT_CHECK_IMAGE, 
+                    name='test_check.jpg',
+                    content=content,
                     content_type='image/jpeg'))
 
     def calculate_expected_hash(self):
