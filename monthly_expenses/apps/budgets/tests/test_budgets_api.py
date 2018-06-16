@@ -1,12 +1,17 @@
 """
 Test REST API for budgets
 """
+import datetime
+from mock import patch, Mock
+
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from rest_framework import status
 
+from apps.bills.models import Bill
+from apps.bills.tests.helpers import BillTestCase
 from apps.budgets.models import (
-    Budget, Category)
+    Budget, BillCategory, Category)
 
 
 class CategoryApiTestCase(TestCase):
@@ -102,7 +107,7 @@ class CreateBudgetAPITestCase(TestCase):
 
     def test_create_budget__201_created_returned(self):
         """
-        We return 200 OK status if budget created successfully
+        We return 201 CREATED status if budget created successfully
         """
         response = self.create_budget()
         self.assertEqual(
@@ -111,7 +116,7 @@ class CreateBudgetAPITestCase(TestCase):
 
     def test_create_budget_succesfully(self):
         """
-        Budget created successfully on successfull request
+        Budget created on successfull request
         """
         response = self.create_budget()
         self.assertTrue(
@@ -152,3 +157,74 @@ class CreateBudgetAPITestCase(TestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_400_BAD_REQUEST)
+
+
+class ListBudgetAPITestCase(
+        BillTestCase,
+        TestCase):
+    """
+    Test REST API for budgets listing
+    """
+    def setUp(self):
+        self.user = self.get_or_create_user()
+        self.bill = self.create_bill()
+        self.category = Category.objects.create(name='test')
+        self.budget = Budget.objects.create(
+            user=self.user,
+            category=self.category,
+            amount=100)
+        self.bill_to_category = BillCategory.objects.create(
+            bill=self.bill,
+            category=self.category,
+            amount=10)
+        Bill.objects.filter(id=self.bill.id).\
+            update(create_time=datetime.datetime(2018, 6, 9))
+
+    def list_budgets(
+            self,
+            auth_needed=True):
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.get(
+            reverse('budgets'))
+
+    def test_list__200_ok_returned(self):
+        """
+        We return 200 OK status on successfull request
+        """
+        response = self.list_budgets()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    @patch('apps.budgets.models.datetime')
+    def test_list_budgets_succesfully(
+            self, datetime_mock):
+        """
+        Valid budget list returned
+        """
+        datetime_mock.date.today = Mock(
+            return_value=datetime.date(2018, 6, 20))
+        response = self.list_budgets()
+        self.assertListEqual(
+            response.data,
+            [
+                {
+                    'amount': 100, 
+                    'id': self.budget.id, 
+                    'category': {
+                        'id': self.category.id,
+                        'name': 'test'
+                    },
+                    'total_expenses_in_current_month': 10
+                }
+            ])
+
+    def test_list_budget_non_authenticated__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user is not authenticated
+        """
+        response = self.list_budgets(auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)

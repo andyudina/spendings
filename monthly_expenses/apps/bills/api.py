@@ -118,7 +118,7 @@ class ListUploadUniqueBillAPI(
 
     def get_queryset(self):
         """
-        On get request his view should return a list of all bills
+        On get request this view should return a list of all bills
         for the currently authenticated user.
         """
         user = self.request.user

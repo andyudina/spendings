@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import datetime
+
 from django.db import models
 
 
@@ -58,6 +60,18 @@ class Budget(models.Model):
         return 'Budget %s for %s' % (
             self.category,
             self.user)
+
+    @property
+    def total_expenses_in_current_month(self):
+        """
+        Calculate total expenses in current month
+        """
+        # TODO: better accept date ranges in api
+        # that will aloow apis to be more persistent and flexible
+        today = datetime.date.today()
+        begin_of_the_month = today.replace(day=1)
+        return self.calculate_total_expenses(
+            begin_date=begin_of_the_month)
 
     def calculate_total_expenses(
             self, begin_date=None, end_date=None):

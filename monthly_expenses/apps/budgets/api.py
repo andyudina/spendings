@@ -4,6 +4,7 @@ Rest api for budgets manipulations: create, edit, show, notify
 from django.contrib.auth.models import User
 from django.db import transaction
 from rest_framework import (
+    exceptions,
     permissions,
     serializers,
     generics)
@@ -66,11 +67,52 @@ class CreateBudgetSerializer(
             'amount', 'user', 'category')
 
 
-class CreateBudget(
-        generics.CreateAPIView):
+class CategorySerialiser(
+        serializers.ModelSerializer):
+    """
+    Read only model serialiser to diplay category
+    """
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+
+class ListBudgetSerialiser(
+        serializers.ModelSerializer):
+    """
+    Read only model serialiser to display budget
+    """
+    category = CategorySerialiser(read_only=True)
+
+    class Meta:
+        model = Budget
+        fields = (
+            'amount',
+            'id',
+            'category',
+            'total_expenses_in_current_month',
+        )
+
+
+class ListCreateBudget(
+        generics.ListCreateAPIView):
     """
     Create budget for user
     """
-    serializer_class = CreateBudgetSerializer
     permission_classes = (
         permissions.IsAuthenticated, )
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateBudgetSerializer
+        elif self.request.method == 'GET':
+            return ListBudgetSerialiser
+        raise exceptions.MethodNotAllowed(self.request.method)
+
+    def get_queryset(self):
+        """
+        On get request this view returns a list of all budgets
+        for the currently authenticated user.
+        """
+        user = self.request.user
+        return Budget.objects.filter(user=user)
