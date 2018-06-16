@@ -4,6 +4,7 @@ Test REST API for budgets
 import datetime
 from mock import patch, Mock
 
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from rest_framework import status
@@ -82,7 +83,6 @@ class CreateBudgetAPITestCase(TestCase):
     """
 
     def setUp(self):
-        from django.contrib.auth.models import User
         self.user = User.objects.create(
             username='test@gmai.com',
             email='test@gmai.com',
@@ -228,3 +228,121 @@ class ListBudgetAPITestCase(
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN)
+
+
+class UpdateBudgetAPITestCase(TestCase):
+    """
+    Test REST API for budget updates
+    """
+
+    def setUp(self):
+        self.user = User.objects.create(
+            username='test@gmai.com',
+            email='test@gmai.com',
+            password='#')
+        self.category = Category.objects.create(
+            name='test')
+        self.budget = Budget.objects.create(
+            category=self.category,
+            user=self.user,
+            amount=200)
+
+    def update_budget(
+            self, 
+            auth_needed=True,
+            budget_id=None,
+            data=None):
+        import json
+        data = data or {
+            'amount': 100
+        }
+        budget_id = budget_id or self.budget.id
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.patch(
+            reverse(
+                'budget',
+                kwargs={
+                    'budget_id': budget_id
+                }),
+            json.dumps(data),
+            content_type='application/json')
+
+    def test_update_budget__200_returned(self):
+        """
+        We return 200 OK if budget updated successfully
+        """
+        response = self.update_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_update_budget__amount_changed(self):
+        """
+        We return modify budget amount on successfull update
+        """
+        self.update_budget(
+            data={
+                'amount': 100
+            })
+        self.budget.refresh_from_db()
+        self.assertEqual(
+            self.budget.amount, 100)
+
+    def test_update_budget_non_authenticated__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user is not authenticated
+        """
+        response = self.update_budget(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_update_budget_for_different_user__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user tries to update budget
+        owned by another user
+        """
+        new_user = User.objects.create(
+            username='test-new@gmai.com',
+            email='test-new@gmai.com',
+            password='#')
+        self.budget.user = new_user
+        self.budget.save(update_fields=['user', ])
+        response = self.update_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_update_non_existing_budget__error_returned(self):
+        """
+        We return 404 not found status if user tries to update budget
+        that does not exist
+        """
+        response = self.update_budget(
+            budget_id=self.budget.id + 1)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND)
+
+    def test_update_budget_category__ignored(self):
+        """
+        We ignore attempts to update budget category through this API
+        """
+        new_category = Category.objects.create(
+            name='new-category')
+        response = self.update_budget(
+            data={
+                'category': new_category.id,
+                'amount': 100
+            })
+        # request went through
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+        self.budget.refresh_from_db()
+        # category hasn't changed
+        self.assertEqual(
+            self.budget.category,
+            self.category)

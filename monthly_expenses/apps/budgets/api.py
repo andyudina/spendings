@@ -4,11 +4,13 @@ Rest api for budgets manipulations: create, edit, show, notify
 from django.contrib.auth.models import User
 from django.db import transaction
 from rest_framework import (
+    mixins,
     exceptions,
     permissions,
     serializers,
     generics)
 
+from apps.users.permissions import IsOwner
 from .models import (
     Budget, Category)
 
@@ -134,3 +136,47 @@ class ListCreateBudget(
         """
         user = self.request.user
         return Budget.objects.filter(user=user)
+
+
+## Update and delete budgets
+
+
+class UpdateBudgetSerialiser(
+        serializers.ModelSerializer):
+    """
+    Update budget amount
+    """
+
+    class Meta:
+        model = Budget
+        fields = ('amount', )
+
+
+class UpdateDeleteBudget(
+        mixins.UpdateModelMixin,
+        mixins.DestroyModelMixin,
+        generics.GenericAPIView):
+    """
+    DELETE:
+        Delete budget
+        - 204 DELETED: budget was successfully deleted
+
+    PATCH:
+        Update budget amount
+        - 200 OK: budget was successfully updated
+    """
+    lookup_url_kwarg = 'budget_id'
+    serializer_class = UpdateBudgetSerialiser
+    queryset = Budget.objects.all()
+    permission_classes = (
+        permissions.IsAuthenticated,
+        IsOwner)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
