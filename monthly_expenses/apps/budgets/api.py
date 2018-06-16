@@ -97,7 +97,25 @@ class ListBudgetSerialiser(
 class ListCreateBudget(
         generics.ListCreateAPIView):
     """
-    Create budget for user
+    POST:
+        Create budget for user
+        - 201 CREATED: budget successfully created
+        - 400: error occured
+
+    GET:
+        List all budgets for current user
+        - 200 OK:
+        [
+            {
+                'amount': [budgeting period max amount],
+                'id': [budget id],
+                'category': {
+                    'id': [catgeory id],
+                    'name': [category name],
+                },
+                'total_expenses_in_current_month': [total expenses amount]
+            }
+        ]
     """
     permission_classes = (
         permissions.IsAuthenticated, )
