@@ -279,7 +279,7 @@ class UpdateBudgetAPITestCase(TestCase):
 
     def test_update_budget__amount_changed(self):
         """
-        We return modify budget amount on successfull update
+        We modify budget amount on successfull update
         """
         self.update_budget(
             data={
@@ -346,3 +346,91 @@ class UpdateBudgetAPITestCase(TestCase):
         self.assertEqual(
             self.budget.category,
             self.category)
+
+
+class DeleteBudgetAPITestCase(TestCase):
+    """
+    Test REST API to delete budget
+    """
+
+    def setUp(self):
+        self.user = User.objects.create(
+            username='test@gmai.com',
+            email='test@gmai.com',
+            password='#')
+        self.category = Category.objects.create(
+            name='test')
+        self.budget = Budget.objects.create(
+            category=self.category,
+            user=self.user,
+            amount=200)
+
+    def delete_budget(
+            self, 
+            auth_needed=True,
+            budget_id=None):
+        budget_id = budget_id or self.budget.id
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.delete(
+            reverse(
+                'budget',
+                kwargs={
+                    'budget_id': budget_id
+                })
+            )
+
+    def test_delete_budget__204_returned(self):
+        """
+        We return 204 No content if budget deleted successfully
+        """
+        response = self.delete_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT)
+
+    def test_delete_budget__amount_changed(self):
+        """
+        We successfully deleted budget
+        """
+        self.delete_budget()
+        self.assertFalse(
+            Budget.objects.filter(
+                id=self.budget.id).exists())
+
+    def test_delete_budget_non_authenticated__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user is not authenticated
+        """
+        response = self.delete_budget(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_delete_budget_for_different_user__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user tries to delete budget
+        owned by another user
+        """
+        new_user = User.objects.create(
+            username='test-new@gmai.com',
+            email='test-new@gmai.com',
+            password='#')
+        self.budget.user = new_user
+        self.budget.save(update_fields=['user', ])
+        response = self.delete_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_delete_non_existing_budget__error_returned(self):
+        """
+        We return 404 not found status if user tries to update budget
+        that does not exist
+        """
+        response = self.delete_budget(
+            budget_id=self.budget.id + 1)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND)
