@@ -5,7 +5,9 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from rest_framework import status
 
-from apps.budgets.models import Category
+from apps.budgets.models import (
+    Budget, Category)
+
 
 class CategoryApiTestCase(TestCase):
     """
@@ -67,3 +69,86 @@ class CategoryApiTestCase(TestCase):
                     'id': 3,
                 },
             ])
+
+
+class CreateBudgetAPITestCase(TestCase):
+    """
+    Test REST API for budget creation
+    """
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user, _ = User.objects.get_or_create(
+            username='test@gmai.com',
+            email='test@gmai.com',
+            password='#')
+        self.category = Category.objects.create(
+            name='test')
+
+    def create_budget(
+            self, 
+            auth_needed=True,
+            category=None, amount=None):
+        category = category or self.category.id
+        amount = amount or 10
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.post(
+            reverse('budgets'),
+            {
+                'category': category,
+                'amount': amount,
+            })
+
+    def test_create_budget__201_created_returned(self):
+        """
+        We return 200 OK status if budget created successfully
+        """
+        response = self.create_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED)
+
+    def test_create_budget_succesfully(self):
+        """
+        Budget created successfully on successfull request
+        """
+        response = self.create_budget()
+        self.assertTrue(
+            Budget.objects.filter(
+                user=self.user,
+                category=self.category,
+                amount=10).exists())
+
+    def test_create_budget_non_authenticated__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user is not authenticated
+        """
+        response = self.create_budget(auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+    def test_create_budget_non_existing_category__error_returned(self):
+        """
+        We return 400 bad request if category does not exists
+        """
+        response = self.create_budget(
+            category=self.category.id + 1)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_create_budget_twice__error_returned(self):
+        """
+        We return 400 bad request if budget
+        for this category was already created
+        """
+        Budget.objects.create(
+            category=self.category,
+            user=self.user,
+            amount=10)
+        response = self.create_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)

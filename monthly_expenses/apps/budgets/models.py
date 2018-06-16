@@ -39,3 +39,28 @@ class BillCategory(models.Model):
         unique_together = (
             ('bill', 'category'),
         )
+
+
+class Budget(models.Model):
+    """
+    Store categorised budget for user
+    """
+    category = models.ForeignKey(
+        Category,
+        null=False, blank=False)
+    user = models.ForeignKey(
+        'auth.User',
+        blank=False, null=False)
+    amount = models.FloatField(
+        null=False, blank=False)
+
+    def __str__(self):
+        return 'Budget %s for %s' % (
+            self.category,
+            self.user)
+
+    class Meta:
+        unique_together = (
+            ('user', 'category'),
+        )
+
