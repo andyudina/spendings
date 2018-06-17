@@ -212,6 +212,13 @@ class TestBudgetAmountsValidation(
             self.categorical_budget.amount, 
             new_amount)
 
+    def test_budget_total_amount_is_valid_can_delete_categorical_budget(
+            self):
+        """
+        we can delete total budget
+        """
+        self.categorical_budget.delete()
+
 
 class TestEmptyTotalBudgetCreation(
         TestBillMixin,
