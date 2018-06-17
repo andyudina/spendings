@@ -199,3 +199,43 @@ class GetCurrentUserAPITest(TestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_404_NOT_FOUND)
+
+
+class SignupAnonymousUserTestCase(TestCase):
+    """
+    Test api for creating and loging in anonymous users
+    """
+
+    def create_user(self):
+        return self.client.post(
+            reverse('create-anon-user'))
+
+    def test_ok_response_returned(self):
+        """
+        We return 200 OK response if user
+        was created successfullt
+        """
+        response = self.create_user()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_new_user_created(self):
+        """
+        We create new anonymous user on successful request
+        """
+        self.assertEqual(
+            User.objects.count(), 0)
+        self.create_user()
+        self.assertEqual(
+            User.objects.count(), 1)
+
+    def test_user_logged_in(self):
+        """
+        We log in newly created anonymous user
+        """
+        from django.contrib import auth
+        response = self.create_user()
+        user = auth.get_user(self.client)
+        self.assertTrue(user.is_authenticated())
+

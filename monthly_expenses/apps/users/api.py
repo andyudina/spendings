@@ -5,6 +5,7 @@ from django.contrib.auth import (
     authenticate, login)
 from django.http import Http404
 from rest_framework import (
+    response,
     serializers, 
     generics)
 
@@ -133,3 +134,29 @@ class CurrentUser(
             return self.request.user
         raise Http404
 
+
+class SignupAnonymousUser(
+        generics.GenericAPIView):
+    """
+    Create anonymous user and log in as newly created user
+    """
+
+    def _create_anonymous_user(self):
+        """
+        Generate unique hash for username
+        Create anon user using hash
+        """
+        import uuid
+        username = uuid.uuid4().hex
+        random_password = uuid.uuid4().hex
+        return User.objects.create_user(
+            username=username,
+            email='%s@anon.anon' % username,
+            password=random_password)
+
+    def post(
+            self, request, *args, **kwargs):
+        user = self._create_anonymous_user()
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        login(request, user)
+        return response.Response()
