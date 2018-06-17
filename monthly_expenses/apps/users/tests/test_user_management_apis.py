@@ -234,8 +234,25 @@ class SignupAnonymousUserTestCase(TestCase):
         """
         We log in newly created anonymous user
         """
-        from django.contrib import auth
         response = self.create_user()
-        user = auth.get_user(self.client)
+        user = get_user(self.client)
         self.assertTrue(user.is_authenticated())
 
+    def test_already_logged_in__new_user_was_not_created(self):
+        """
+        We do not create new user for already logged in user
+        """
+        # create and log in user
+        user = User.objects.create_user(
+            'test@test.com', 
+            'test@test.com', '#')
+        self.client.force_login(user)
+        # try create user once again
+        response = self.create_user()
+        loggedin_user = get_user(self.client)
+        # make sure user is still logged in as previous user
+        self.assertEqual(
+            user, loggedin_user)
+        # make sure new user is not created
+        self.assertFalse(
+            User.objects.exclude(id=user.id).exists())

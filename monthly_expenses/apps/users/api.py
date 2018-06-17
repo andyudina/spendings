@@ -156,6 +156,10 @@ class SignupAnonymousUser(
 
     def post(
             self, request, *args, **kwargs):
+        if request.user.is_authenticated():
+            # do not create new user
+            # for already logged in customer
+            return response.Response()
         user = self._create_anonymous_user()
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, user)
