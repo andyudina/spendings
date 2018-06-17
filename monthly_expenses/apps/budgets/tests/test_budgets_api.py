@@ -429,3 +429,105 @@ class DeleteBudgetAPITestCase(
         self.assertEqual(
             response.status_code,
             status.HTTP_404_NOT_FOUND)
+
+
+class RequestTotalBudgetAPITestCase(
+         BudgetTestCaseMixin, TestCase):
+    """
+    Test API enpoint to show total budget
+    """
+    def setUp(self):
+        self.user = self.get_or_create_user_with_budget()
+
+    def get_total_budget(
+            self, 
+            auth_needed=True):
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.get(
+            reverse('total-budget'))
+
+    def test_get_total_budget__200_returned(self):
+        """
+        We return 200 OK on successful request
+        """
+        response = self.get_total_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_get_total_budget__valid_amount_returned(self):
+        """
+        We return valid budget amount
+        """
+        response = self.get_total_budget()
+        self.assertDictEqual(
+            response.data,
+            {
+                'amount': self.user.total_budget.amount
+            })
+
+    def test_get_total_budget_non_authenticated__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user is not authenticated
+        """
+        response = self.get_total_budget(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+
+
+class UpdateTotalBudgetAPITestCase(
+         BudgetTestCaseMixin, TestCase):
+    """
+    Test API enpoint to update total budget
+    """
+    def setUp(self):
+        self.user = self.get_or_create_user_with_budget()
+
+    def update_total_budget(
+            self, 
+            auth_needed=True,
+            data=None):
+        import json
+        data = data or {
+            'amount': 200
+        }
+        if auth_needed:
+            self.client.force_login(self.user)
+        return self.client.patch(
+            reverse('total-budget'),
+            json.dumps(data),
+            content_type='application/json')
+
+    def test_update_total_budget__200_returned(self):
+        """
+        We return 200 OK if budget updated successfully
+        """
+        response = self.update_total_budget()
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK)
+
+    def test_update_total_budget__amount_changed(self):
+        """
+        We modify total budget amount on successfull update
+        """
+        self.update_total_budget(
+            data={
+                'amount': 200
+            })
+        self.user.total_budget.refresh_from_db()
+        self.assertEqual(
+            self.user.total_budget.amount, 200)
+
+    def test_update_total_budget_non_authenticated__error_returned(self):
+        """
+        We return 403 FORBIDDEN status if user is not authenticated
+        """
+        response = self.update_total_budget(
+            auth_needed=False)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)

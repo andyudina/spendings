@@ -12,7 +12,7 @@ from rest_framework import (
 
 from apps.users.permissions import IsOwner
 from .models import (
-    Budget, Category)
+    TotalBudget, Budget, Category)
 
 
 class CategorySerializer(
@@ -180,3 +180,49 @@ class UpdateDeleteBudget(
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+
+
+class TotalBudgetSerialiser(
+        serializers.ModelSerializer):
+    """
+    Serialiser to retrieve and update
+    total budet amount
+    """
+    class Meta:
+        model = TotalBudget
+        fields = ('amount', )
+
+
+class RetrieveUpdateTotalBudget(
+        mixins.UpdateModelMixin,
+        mixins.RetrieveModelMixin,
+        generics.GenericAPIView):
+    """
+    GET:
+        Retrieve total budget amount for current user
+        - 200 OK:
+        {
+            'amount': [total budget amount]
+        }
+    PATCH:
+        Update total budget amount for current user
+        - 200 OK: amount updated
+        - 400 BAD REQUEST: error occured
+    """
+    serializer_class = TotalBudgetSerialiser
+    permission_classes = (
+        permissions.IsAuthenticated, )
+
+    def get_object(self):
+        # expects total budget to be already created
+        # for authenticated user
+        return self.request.user.total_budget
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)

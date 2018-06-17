@@ -3,7 +3,8 @@ from django.conf.urls import url
 from .api import (
     ListCategories,
     ListCreateBudget,
-    UpdateDeleteBudget)
+    UpdateDeleteBudget,
+    RetrieveUpdateTotalBudget)
 
 # TODO: redesign urls to answer REST API standarts
 
@@ -16,5 +17,8 @@ urlpatterns = [
         name='budgets'),
     url(r'^(?P<budget_id>\d+)$',
         UpdateDeleteBudget.as_view(),
-        name='budget')
+        name='budget'),
+    url(r'^total/$',
+        RetrieveUpdateTotalBudget.as_view(),
+        name='total-budget')
 ]
