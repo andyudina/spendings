@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -52,7 +53,8 @@ class Budget(models.Model):
         null=False, blank=False)
     user = models.ForeignKey(
         'auth.User',
-        blank=False, null=False)
+        blank=False, null=False,
+        related_name='categorised_budgets')
     amount = models.FloatField(
         null=False, blank=False)
 
@@ -92,8 +94,63 @@ class Budget(models.Model):
                 bill__create_time__lt=end_date)
         return qs.aggregate(models.Sum('amount'))['amount__sum'] or 0
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(Budget, self).save(*args, **kwargs)
+
+    def clean(self):
+        """
+        Validate that total budget is equal or more than sum of
+        categorised budgets
+        """
+        if self.user.total_budget.amount < \
+            (
+                self.user.categorised_budgets.\
+                exclude(id=self.id).\
+                aggregate(models.Sum('amount'))\
+               ['amount__sum'] or 0
+            ) + self.amount:
+            raise ValidationError(
+                'total budget amount can not be less than sum of categorised '
+                'budgets amounts')
+
     class Meta:
         unique_together = (
             ('user', 'category'),
         )
 
+
+class TotalBudget(models.Model):
+    """
+    Stores total budget for a user, regardless categories
+    Total budget can be more or equal to sum of categorised budgets
+    """
+    user = models.OneToOneField(
+        'auth.User',
+        blank=False, null=False,
+        related_name='total_budget')
+    amount = models.FloatField(
+        null=False, blank=False)
+
+    def __str__(self):
+        return 'Total budget for %s' % (
+            self.user)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(TotalBudget, self).save(*args, **kwargs)
+
+    def clean(self):
+        """
+        Validate that total budget is equal or more than sum of
+        categorised budgets
+        """
+        if self.amount < \
+            (
+                self.user.categorised_budgets.\
+                aggregate(models.Sum('amount'))\
+               ['amount__sum'] or 0
+            ):
+            raise ValidationError(
+                'total budget amount can not be less than sum of categorised '
+                'budgets amounts')
