@@ -6,3 +6,6 @@ from django.apps import AppConfig
 
 class BudgetsConfig(AppConfig):
     name = 'apps.budgets'
+
+    def ready(self):
+        import handlers

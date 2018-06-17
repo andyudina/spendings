@@ -4,7 +4,6 @@ Test REST API for budgets
 import datetime
 from mock import patch, Mock
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from rest_framework import status
@@ -12,7 +11,8 @@ from rest_framework import status
 from apps.bills.models import Bill
 from apps.bills.tests.helpers import BillTestCase
 from apps.budgets.models import (
-    Budget, BillCategory, Category)
+    TotalBudget, Budget, BillCategory, Category)
+from .helpers import BudgetTestCaseMixin
 
 
 class CategoryApiTestCase(TestCase):
@@ -77,16 +77,15 @@ class CategoryApiTestCase(TestCase):
             ])
 
 
-class CreateBudgetAPITestCase(TestCase):
+class CreateBudgetAPITestCase(
+        BudgetTestCaseMixin,
+        TestCase):
     """
     Test REST API for budget creation
     """
 
     def setUp(self):
-        self.user = User.objects.create(
-            username='test@gmai.com',
-            email='test@gmai.com',
-            password='#')
+        self.user = self.get_or_create_user_with_budget()
         self.category = Category.objects.create(
             name='test')
 
@@ -160,13 +159,14 @@ class CreateBudgetAPITestCase(TestCase):
 
 
 class ListBudgetAPITestCase(
+        BudgetTestCaseMixin,
         BillTestCase,
         TestCase):
     """
     Test REST API for budgets listing
     """
     def setUp(self):
-        self.user = self.get_or_create_user()
+        self.user = self.get_or_create_user_with_budget()
         self.bill = self.create_bill()
         self.category = Category.objects.create(name='test')
         self.budget = Budget.objects.create(
@@ -230,16 +230,14 @@ class ListBudgetAPITestCase(
             status.HTTP_403_FORBIDDEN)
 
 
-class UpdateBudgetAPITestCase(TestCase):
+class UpdateBudgetAPITestCase(
+        BudgetTestCaseMixin, TestCase):
     """
     Test REST API for budget updates
     """
 
     def setUp(self):
-        self.user = User.objects.create(
-            username='test@gmai.com',
-            email='test@gmai.com',
-            password='#')
+        self.user = self.get_or_create_user_with_budget()
         self.category = Category.objects.create(
             name='test')
         self.budget = Budget.objects.create(
@@ -304,10 +302,8 @@ class UpdateBudgetAPITestCase(TestCase):
         We return 403 FORBIDDEN status if user tries to update budget
         owned by another user
         """
-        new_user = User.objects.create(
-            username='test-new@gmai.com',
-            email='test-new@gmai.com',
-            password='#')
+        new_user = self.get_or_create_user_with_budget(
+            email='test-new@gmai.com')
         self.budget.user = new_user
         self.budget.save(update_fields=['user', ])
         response = self.update_budget()
@@ -348,16 +344,17 @@ class UpdateBudgetAPITestCase(TestCase):
             self.category)
 
 
-class DeleteBudgetAPITestCase(TestCase):
+class DeleteBudgetAPITestCase(
+        BudgetTestCaseMixin, TestCase):
     """
     Test REST API to delete budget
     """
 
     def setUp(self):
-        self.user = User.objects.create(
-            username='test@gmai.com',
-            email='test@gmai.com',
-            password='#')
+        self.user = self.get_or_create_user_with_budget()
+        self.user.total_budget.amount = 1000
+        self.user.total_budget.save(
+            update_fields=['amount', ])
         self.category = Category.objects.create(
             name='test')
         self.budget = Budget.objects.create(
@@ -413,10 +410,8 @@ class DeleteBudgetAPITestCase(TestCase):
         We return 403 FORBIDDEN status if user tries to delete budget
         owned by another user
         """
-        new_user = User.objects.create(
-            username='test-new@gmai.com',
-            email='test-new@gmai.com',
-            password='#')
+        new_user = self.get_or_create_user_with_budget(
+            email='test-new@gmai.com')
         self.budget.user = new_user
         self.budget.save(update_fields=['user', ])
         response = self.delete_budget()

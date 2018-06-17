@@ -13,6 +13,7 @@ from apps.bills.tests.helpers import (
 from apps.budgets.models import (
     Budget, TotalBudget,
     BillCategory, Category)
+from .helpers import BudgetTestCaseMixin
 
 
 class CalculateTotalExpensesForBudgetTestCase(
@@ -23,6 +24,9 @@ class CalculateTotalExpensesForBudgetTestCase(
 
     def setUp(self):
         self.user = self.get_or_create_user()
+        self.user.total_budget.amount = 1000
+        self.user.total_budget.save(
+            update_fields=['amount', ])
         self.category = Category.objects.create(name='test')
         self.bills = [
             self.create_bill(content='test-1'),
@@ -122,6 +126,7 @@ class CalculateTotalExpensesForBudgetTestCase(
 
 
 class TestBudgetAmountsValidation(
+        BudgetTestCaseMixin,
         TestBillMixin,
         TestCase):
     """
@@ -130,11 +135,9 @@ class TestBudgetAmountsValidation(
     categorised amounts
     """
     def setUp(self):
-        self.user = self.get_or_create_user()
+        self.user = self.get_or_create_user_with_budget(
+            budget=100)
         self.category = Category.objects.create(name='test')
-        self.total_budget = TotalBudget.objects.create(
-            user=self.user,
-            amount=100)
         self.categorical_budget = Budget.objects.create(
             user=self.user,
             category=self.category,
@@ -147,8 +150,8 @@ class TestBudgetAmountsValidation(
         sum of categorical budgets
         """
         with self.assertRaises(ValidationError):
-            self.total_budget.amount = 5
-            self.total_budget.save(
+            self.user.total_budget.amount = 5
+            self.user.total_budget.save(
                 update_fields=['amount', ])
 
     def test_budget_total_amount_is_valid_can_update_total_budget(
@@ -157,12 +160,12 @@ class TestBudgetAmountsValidation(
         we can update total budget if its amount is bigger than
         sum of categorical budgets
         """
-        self.total_budget.amount = 105
-        self.total_budget.save(
+        self.user.total_budget.amount = 105
+        self.user.total_budget.save(
             update_fields=['amount', ])
-        self.total_budget.refresh_from_db()
+        self.user.total_budget.refresh_from_db()
         self.assertEqual(
-            self.total_budget.amount, 105)
+            self.user.total_budget.amount, 105)
 
     def test_budget_total_amount_is_too_small_can_t_update_categorical_budget(
             self):
@@ -197,7 +200,7 @@ class TestBudgetAmountsValidation(
         """
         # We need to test this case to make sure
         # our logic with exluding current budget works
-        new_amount = self.total_budget.amount * 2 / 3
+        new_amount = self.user.total_budget.amount * 2 / 3
         self.categorical_budget.amount = new_amount
         self.categorical_budget.save(
             update_fields=['amount', ])
@@ -208,3 +211,36 @@ class TestBudgetAmountsValidation(
         self.assertEqual(
             self.categorical_budget.amount, 
             new_amount)
+
+
+class TestEmptyTotalBudgetCreation(
+        TestBillMixin,
+        TestCase):
+    """
+    Test automatic creation of empty total budget
+    on user creation
+    """
+
+    def test_user_created_with_total_budget(self):
+        """
+        We create total budget automatically
+        when new user is created
+        """
+        user = self.get_or_create_user()
+        self.assertEqual(
+            user.total_budget.amount, 0)
+
+    def test_user_updated_budget_was_not_created(self):
+        """
+        We don't create new budget if user was updated
+        """
+        user = self.get_or_create_user()
+        user.total_budget.amount = 10
+        user.total_budget.save(
+            update_fields=['amount', ])
+        # check that total budget amount was not
+        # updated when user is updated
+        user.email = 'test-new@test.test'
+        user.save(update_fields=['email',])
+        self.assertEqual(
+            user.total_budget.amount, 10)
