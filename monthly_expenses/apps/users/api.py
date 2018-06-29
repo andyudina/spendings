@@ -114,7 +114,7 @@ class UserSerializer(
     """
     class Meta:
         model = User
-        fields = ('email', )    
+        fields = ('email', )
 
 
 class CurrentUser(
@@ -135,11 +135,27 @@ class CurrentUser(
         raise Http404
 
 
+class UserWithBudgetSerializer(
+        serializers.ModelSerializer):
+    """
+    Read only user serialzer with total budget
+    """
+    total_budget = serializers.SerializerMethodField()
+
+    def get_total_budget(self, obj):
+        return obj.total_budget.amount
+
+    class Meta:
+        model = User
+        fields = ('id', 'total_budget')
+
+
 class SignupAnonymousUser(
         generics.GenericAPIView):
     """
     Create anonymous user and log in as newly created user
     """
+    serializer_class = UserWithBudgetSerializer
 
     def _create_anonymous_user(self):
         """
@@ -154,13 +170,20 @@ class SignupAnonymousUser(
             email='%s@anon.anon' % username,
             password=random_password)
 
+    def _get_user_data(self, user):
+        """
+        Serialize and return in response user data
+        """
+        serializer = self.get_serializer(user)
+        return response.Response(serializer.data)
+
     def post(
             self, request, *args, **kwargs):
         if request.user.is_authenticated():
             # do not create new user
             # for already logged in customer
-            return response.Response()
+            return self._get_user_data(request.user)
         user = self._create_anonymous_user()
         user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, user)
-        return response.Response()
+        return self._get_user_data(request.user)

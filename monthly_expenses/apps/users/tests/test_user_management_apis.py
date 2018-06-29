@@ -230,6 +230,14 @@ class SignupAnonymousUserTestCase(TestCase):
         self.assertEqual(
             User.objects.count(), 1)
 
+    def test_new_user_created__empty_budget_returned(self):
+        """
+        We return user with empty budget
+        """
+        response = self.create_user()
+        self.assertEqual(
+            response.data['total_budget'], 0)
+
     def test_user_logged_in(self):
         """
         We log in newly created anonymous user
@@ -256,3 +264,20 @@ class SignupAnonymousUserTestCase(TestCase):
         # make sure new user is not created
         self.assertFalse(
             User.objects.exclude(id=user.id).exists())
+
+    def test_already_logged_in__valid_budget_created(self):
+        """
+        We return valid budget for already logged in user
+        """
+        # create and log in user
+        user = User.objects.create_user(
+            'test@test.com', 
+            'test@test.com', '#')
+        user.total_budget.amount = 100
+        user.total_budget.save(
+            update_fields=['amount', ])
+        self.client.force_login(user)
+        # try create user once again
+        response = self.create_user()
+        self.assertEqual(
+            response.data['total_budget'], 100)
