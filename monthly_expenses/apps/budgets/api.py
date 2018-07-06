@@ -46,7 +46,8 @@ class CreateBudgetSerializer(
     """
     user = serializers.PrimaryKeyRelatedField(
         default=serializers.CurrentUserDefault(),
-        queryset=User.objects.all())
+        queryset=User.objects.all(),
+        write_only=True)
     category = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all())
 
@@ -66,7 +67,7 @@ class CreateBudgetSerializer(
     class Meta:
         model = Budget
         fields = (
-            'amount', 'user', 'category')
+            'amount', 'user', 'category', 'id')
 
 
 class CategorySerialiser(

@@ -124,6 +124,23 @@ class CreateBudgetAPITestCase(
                 category=self.category,
                 amount=10).exists())
 
+    def test_create_budget_succesfull_necessary_information_returned(self):
+        """
+        We return id, category and amount
+        """
+        response = self.create_budget()
+        budget = Budget.objects.filter(
+                user=self.user,
+                category=self.category,
+                amount=10).get()
+        self.assertDictEqual(
+            {
+                'category': self.category.id,
+                'amount': 10,
+                'id': budget.id
+            },
+            response.data)
+
     def test_create_budget_non_authenticated__error_returned(self):
         """
         We return 403 FORBIDDEN status if user is not authenticated
