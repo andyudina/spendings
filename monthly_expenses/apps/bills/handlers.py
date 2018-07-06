@@ -54,11 +54,11 @@ def remove_image_file(
     """
     if not instance.image:
         logger.debug(
-            'No image found for bill %d' % bill.id)
+            'No image found for bill %d' % instance.id)
         return
     if not os.path.isfile(instance.image.path):
         logger.error(
-            'Bill image seems to be not a file %d' % bill.id)
+            'Bill image seems to be not a file %d' % instance.id)
         return
     logger.debug(
         'Deleting image with path %s' % instance.image.path)
