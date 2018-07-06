@@ -8,6 +8,8 @@ from rest_framework import (
     exceptions,
     permissions,
     serializers,
+    status,
+    response,
     generics)
 
 from apps.users.permissions import IsOwner
@@ -138,6 +140,14 @@ class ListCreateBudget(
         user = self.request.user
         return Budget.objects.filter(user=user)
 
+    def create(self, request, *args, **kwargs):
+        # Use different serialiser for creating and showing created data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        budget = serializer.save()
+        return response.Response(
+            ListBudgetSerialiser(budget).data, 
+            status=status.HTTP_201_CREATED)
 
 ## Update and delete budgets
 

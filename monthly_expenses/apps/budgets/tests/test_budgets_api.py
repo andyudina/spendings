@@ -135,9 +135,13 @@ class CreateBudgetAPITestCase(
                 amount=10).get()
         self.assertDictEqual(
             {
-                'category': self.category.id,
+                'category': {
+                    'id': self.category.id,
+                    'name': self.category.name,
+                },
                 'amount': 10,
-                'id': budget.id
+                'id': budget.id,
+                'total_expenses_in_current_month': 0,
             },
             response.data)
 
