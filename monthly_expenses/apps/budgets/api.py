@@ -2,7 +2,7 @@
 Rest api for budgets manipulations: create, edit, show, notify
 """
 from django.contrib.auth.models import User
-from django.db import transaction
+from django.db import transaction, models
 from rest_framework import (
     mixins,
     exceptions,
@@ -56,14 +56,26 @@ class CreateBudgetSerializer(
     def validate(self, data):
         """
         Validate if budget for this category has not been created yet
+        And that sum of all budgets is less than total budget amount
         """
         if Budget.objects.\
                 filter(
                     user=data['user'],
                     category=data['category']
                 ).exists():
-            raise serializers.ValdationError(
+            raise serializers.ValidationError(
                 'You\'ve already created budget for this category')
+        if (
+                data['user'].total_budget.amount <
+                (
+                    data['user'].categorised_budgets.\
+                    aggregate(models.Sum('amount'))\
+                    ['amount__sum'] or 0
+                ) + data['amount']
+            ):
+            raise serializers.ValidationError(
+                'Total budget amount can not be less than sum of categorised '
+                'budgets amounts')
         return data
 
     class Meta:
@@ -158,6 +170,23 @@ class UpdateBudgetSerialiser(
     Update budget amount
     """
 
+    def validate(self, data):
+        """
+        Validate that sum of all budgets is less than total budget amount
+        """
+        if (
+                self.instance.user.total_budget.amount <
+                (
+                    self.instance.user.categorised_budgets.\
+                    aggregate(models.Sum('amount'))\
+                    ['amount__sum'] or 0
+                ) - self.instance.amount + data['amount']
+            ):
+            raise serializers.ValidationError(
+                'Total budget amount can not be less than sum of categorised '
+                'budgets amounts')
+        return data
+
     class Meta:
         model = Budget
         fields = ('amount', )
@@ -199,6 +228,24 @@ class TotalBudgetSerialiser(
     Serialiser to retrieve and update
     total budet amount
     """
+
+    def validate(self, data):
+        """
+        Validate that sum of all budgets is less than total budget amount
+        """
+        if (
+                data['amount'] <
+                (
+                    self.instance.user.categorised_budgets.\
+                    aggregate(models.Sum('amount'))\
+                    ['amount__sum'] or 0
+                )
+            ):
+            raise serializers.ValidationError(
+                'Total budget amount can not be less than sum of categorised '
+                'budgets amounts')
+        return data
+
     class Meta:
         model = TotalBudget
         fields = ('amount', )

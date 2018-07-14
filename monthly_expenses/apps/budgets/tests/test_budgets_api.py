@@ -178,6 +178,22 @@ class CreateBudgetAPITestCase(
             response.status_code,
             status.HTTP_400_BAD_REQUEST)
 
+    def test_create_budget_bigger_than_total__error_returned(self):
+        """
+        We return 400 error if sum of categorised budgets is bigger than
+        total budget
+        """
+        self.user.total_budget.amount = 100
+        self.user.total_budget.save(update_fields=['amount', ])
+        Budget.objects.create(
+            category=Category.objects.create(name='test-1'),
+            user=self.user,
+            amount=60)
+        response = self.create_budget(amount=60)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
+
 
 class ListBudgetAPITestCase(
         BudgetTestCaseMixin,
@@ -364,6 +380,43 @@ class UpdateBudgetAPITestCase(
             self.budget.category,
             self.category)
 
+    def test_update_budget_bigger_than_total__error_returned(self):
+        """
+        We return 400 error if sum of categorised budgets is bigger than
+        total budget
+        """
+        self.user.total_budget.amount = 300
+        self.user.total_budget.save(update_fields=['amount', ])
+        Budget.objects.create(
+            category=Category.objects.create(name='test-1'),
+            user=self.user,
+            amount=60)
+        response = self.update_budget(
+            data={
+                'amount': 250
+            })
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
+
+    def test_update_budget_less_than_total__budget_updated(self):
+        """
+        We update budget if result sum of categorised budgets is less than
+        total budget
+        """
+        self.user.total_budget.amount = 300
+        self.user.total_budget.save(update_fields=['amount', ])
+        Budget.objects.create(
+            category=Category.objects.create(name='test-1'),
+            user=self.user,
+            amount=60)
+        response = self.update_budget(
+            data={
+                'amount': 240
+            })
+        self.budget.refresh_from_db()
+        self.assertEqual(
+            self.budget.amount, 240)
 
 class DeleteBudgetAPITestCase(
         BudgetTestCaseMixin, TestCase):
@@ -552,3 +605,20 @@ class UpdateTotalBudgetAPITestCase(
         self.assertEqual(
             response.status_code,
             status.HTTP_403_FORBIDDEN)
+
+    def test_update_total_budget_less_than_sum__error_returned(self):
+        """
+        We return 400 error if sum of categorised budgets is bigger than
+        total budget
+        """
+        Budget.objects.create(
+            category=Category.objects.create(name='test-1'),
+            user=self.user,
+            amount=60)
+        response = self.update_total_budget(
+            data={
+                'amount': 20
+            })
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST)
