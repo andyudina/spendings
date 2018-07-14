@@ -44,7 +44,28 @@ class BillCategory(models.Model):
         )
 
 
-class Budget(models.Model):
+class CalculateTotalExpensesInCurrentMonth(object):
+    """
+    Mixin. Calculate expenses for budget in current month
+    Depends on calculate_total_expenses method that accepts
+    begin_date
+    """
+
+    @property
+    def total_expenses_in_current_month(self):
+        """
+        Calculate total expenses in current month
+        """
+        # TODO: better accept date ranges in api
+        # that will aloow apis to be more persistent and flexible
+        today = datetime.date.today()
+        begin_of_the_month = today.replace(day=1)
+        return self.calculate_total_expenses(
+            begin_date=begin_of_the_month)
+
+class Budget(
+      CalculateTotalExpensesInCurrentMonth,
+      models.Model):
     """
     Store categorised budget for user
     """
@@ -62,18 +83,6 @@ class Budget(models.Model):
         return 'Budget %s for %s' % (
             self.category,
             self.user)
-
-    @property
-    def total_expenses_in_current_month(self):
-        """
-        Calculate total expenses in current month
-        """
-        # TODO: better accept date ranges in api
-        # that will aloow apis to be more persistent and flexible
-        today = datetime.date.today()
-        begin_of_the_month = today.replace(day=1)
-        return self.calculate_total_expenses(
-            begin_date=begin_of_the_month)
 
     def calculate_total_expenses(
             self, begin_date=None, end_date=None):
@@ -120,7 +129,9 @@ class Budget(models.Model):
         )
 
 
-class TotalBudget(models.Model):
+class TotalBudget(
+      CalculateTotalExpensesInCurrentMonth,
+      models.Model):
     """
     Stores total budget for a user, regardless categories
     Total budget can be more or equal to sum of categorised budgets
@@ -139,6 +150,25 @@ class TotalBudget(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super(TotalBudget, self).save(*args, **kwargs)
+
+    def calculate_total_expenses(
+            self, begin_date=None, end_date=None):
+        """
+        Calculate total expenses
+        in given time frame
+        """
+        # TODO: calculate amounts for also not categorised
+        # bills
+        qs = BillCategory.objects.filter(
+            bill__user=self.user)
+        if begin_date:
+            qs = qs.filter(
+                bill__create_time__gte=begin_date)
+        if end_date:
+            qs = qs.filter(
+                bill__create_time__lt=end_date)
+        return qs.aggregate(models.Sum('amount'))['amount__sum'] or 0
+
 
     def clean(self):
         """

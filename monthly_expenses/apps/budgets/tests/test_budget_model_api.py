@@ -16,24 +16,25 @@ from apps.budgets.models import (
 from .helpers import BudgetTestCaseMixin
 
 
-class CalculateTotalExpensesForBudgetTestCase(
-        BillTestCase):
+class SetUpBudgetsMixin(object):
     """
-    Test python api for summing total budget expenses
+    Mixin to set up budgets, bills and categories
+    for budget calculation tests
     """
-
     def setUp(self):
         self.user = self.get_or_create_user()
         self.user.total_budget.amount = 1000
         self.user.total_budget.save(
             update_fields=['amount', ])
         self.category = Category.objects.create(name='test')
+        self.category_1 = Category.objects.create(name='test-1')
         self.bills = [
             self.create_bill(content='test-1'),
             self.create_bill(content='test-2'),
             self.create_bill(content='test-3')
         ]
         self.bills_to_categories = [
+            # First category
             BillCategory.objects.create(
                 bill=self.bills[0],
                 category=self.category,
@@ -45,6 +46,20 @@ class CalculateTotalExpensesForBudgetTestCase(
             BillCategory.objects.create(
                 bill=self.bills[2],
                 category=self.category,
+                amount=30),
+
+            # Second category
+            BillCategory.objects.create(
+                bill=self.bills[0],
+                category=self.category_1,
+                amount=10),
+            BillCategory.objects.create(
+                bill=self.bills[1],
+                category=self.category_1,
+                amount=20),
+            BillCategory.objects.create(
+                bill=self.bills[2],
+                category=self.category_1,
                 amount=30),
         ]
         Bill.objects.\
@@ -60,6 +75,18 @@ class CalculateTotalExpensesForBudgetTestCase(
             user=self.user,
             category=self.category,
             amount=100)
+        self.budget_1 = Budget.objects.create(
+            user=self.user,
+            category=self.category_1,
+            amount=100)
+
+
+class CalculateTotalExpensesForBudgetTestCase(
+        SetUpBudgetsMixin,
+        BillTestCase):
+    """
+    Test python api for summing budget expenses
+    """
 
     def test_no_timelimits_valid_sum_returned(self):
         """
@@ -124,6 +151,64 @@ class CalculateTotalExpensesForBudgetTestCase(
             ),
             0)
 
+
+class CalculateTotalExpensesForTotalBudgetTestCase(
+        SetUpBudgetsMixin,
+        BillTestCase):
+    """
+    Test python api for summing total budget expenses
+    """
+
+    def test_no_timelimits_valid_sum_returned(self):
+        """
+        We calculate valid sum if no time limits passed
+        """
+        self.assertEqual(
+            self.user.total_budget.calculate_total_expenses(),
+            120)
+
+    def test_filter_bills_by_budgeting_period_begin_date__valid_sum_returned(
+            self):
+        """
+        We calculate valid sum if begin date passed
+        """
+        self.assertEqual(
+            self.user.total_budget.calculate_total_expenses(
+                begin_date=datetime.datetime(2018, 6, 9)
+            ),
+            100)
+
+    def test_filter_bills_by_budgeting_period_end_date__valid_sum_returned(
+            self):
+        """
+        We calculate valid sum if end date passed
+        """
+        self.assertEqual(
+            self.user.total_budget.calculate_total_expenses(
+                end_date=datetime.datetime(2018, 6, 11)
+            ),
+            60)
+
+    def test_filter_out_bills_with_different_user(self):
+        """
+        We do not include bills for different user into aggregation
+        """
+        new_user = self.get_or_create_user(email='test-2@test.com')
+        self.bills[2].user = new_user
+        self.bills[2].save(update_fields=['user'])
+        self.assertEqual(
+            self.user.total_budget.calculate_total_expenses(),
+            60)
+
+    def test_no_bills_found__zero_returned(self):
+        """
+        We return zero if no bills were found
+        """
+        self.assertEqual(
+            self.user.total_budget.calculate_total_expenses(
+                begin_date=datetime.datetime(2018, 6, 30)
+            ),
+            0)
 
 class TestBudgetAmountsValidation(
         BudgetTestCaseMixin,
