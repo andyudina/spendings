@@ -141,13 +141,19 @@ class UserWithBudgetSerializer(
     Read only user serialzer with total budget
     """
     total_budget = serializers.SerializerMethodField()
+    total_spent_budget = serializers.SerializerMethodField()
 
     def get_total_budget(self, obj):
         return obj.total_budget.amount
 
+    def get_total_spent_budget(self, obj):
+        return obj.total_budget.total_expenses_in_current_month
+
     class Meta:
         model = User
-        fields = ('id', 'total_budget')
+        fields = (
+            'id', 'total_budget',
+            'total_spent_budget')
 
 
 class SignupAnonymousUser(

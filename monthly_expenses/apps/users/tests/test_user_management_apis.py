@@ -1,6 +1,8 @@
 """
 Test cases for user management apis
 """
+from mock import patch
+
 from django.contrib.auth import (
     authenticate, get_user)
 from django.contrib.auth.models import User
@@ -265,7 +267,7 @@ class SignupAnonymousUserTestCase(TestCase):
         self.assertFalse(
             User.objects.exclude(id=user.id).exists())
 
-    def test_already_logged_in__valid_budget_created(self):
+    def test_already_logged_in__valid_budget_returned(self):
         """
         We return valid budget for already logged in user
         """
@@ -281,3 +283,23 @@ class SignupAnonymousUserTestCase(TestCase):
         response = self.create_user()
         self.assertEqual(
             response.data['total_budget'], 100)
+
+    @patch('apps.budgets.models.TotalBudget.calculate_total_expenses')
+    def test_already_logged_in__valid_spendings_returned(
+            self, calculate_total_expenses_mock):
+        """
+        We return valid spendings for already logged in user
+        """
+        calculate_total_expenses_mock.return_value = 10
+        # create and log in user
+        user = User.objects.create_user(
+            'test@test.com', 
+            'test@test.com', '#')
+        user.total_budget.amount = 100
+        user.total_budget.save(
+            update_fields=['amount', ])
+        self.client.force_login(user)
+        # try create user once again
+        response = self.create_user()
+        self.assertEqual(
+            response.data['total_spent_budget'], 10)
