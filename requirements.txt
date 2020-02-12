@@ -12,7 +12,7 @@ configparser==3.5.0
 CurrencyConverter==0.13.2
 cycler==0.10.0
 decorator==4.2.1
-Django==1.11.11
+Django==1.11.28
 django-environ==0.4.4
 django-rest-framework==0.1.0
 djangorestframework==3.7.7
