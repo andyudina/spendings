@@ -57,7 +57,7 @@ pyparsing==2.1.8
 pytesseract==0.2.0
 python-dateutil==2.5.3
 pytz==2016.6.1
-PyYAML==3.12
+PyYAML==5.4
 pyzmq==15.3.0
 qtconsole==4.2.1
 requests==2.18.4
